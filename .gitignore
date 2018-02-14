@@ -1,0 +1,28 @@
+## Artifacts
+*.class
+
+## Package Files
+*.jar
+*.war
+*.ear
+target
+
+## IntelliJ
+.idea
+*.iml
+
+## Logs
+*.log
+
+## Temp
+*~
+.#*
+
+dependency-reduced-pom.xml
+created_job_ids
+
+.DS_Store
+tags
+/nbproject/
+
+Dockerfile.geoip
