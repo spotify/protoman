@@ -24,7 +24,7 @@
   </properties>
 
   <dependencyManagement>
-        <dependencies>
+    <dependencies>
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
@@ -60,6 +60,11 @@
         <groupId>org.hamcrest</groupId>
         <artifactId>java-hamcrest</artifactId>
         <version>2.0.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.cloud</groupId>
+        <artifactId>google-cloud-storage</artifactId>
+        <version>1.14.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
