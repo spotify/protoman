@@ -1,15 +1,22 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
 
-  <name>protoman</name>
-  <artifactId>protoman</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-
   <parent>
     <groupId>com.spotify</groupId>
     <artifactId>root</artifactId>
     <version>4</version>
   </parent>
+
+  <name>protoman</name>
+  <artifactId>protoman</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>registry</module>
+    <module>validation</module>
+    <module>schema</module>
+  </modules>
 
   <properties>
   </properties>
@@ -17,10 +24,7 @@
   <dependencyManagement>
   </dependencyManagement>
 
-  <dependencies>
-  </dependencies>
-
-  <build>
+  <!--<build>
     <finalName>${project.artifactId}</finalName>
     <plugins>
 
@@ -62,6 +66,6 @@
       </plugin>
 
     </plugins>
-  </build>
+  </build>-->
 
 </project>
