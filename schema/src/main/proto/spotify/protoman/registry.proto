@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package spotify.protoman;
+
+option java_package = "com.spotify.protoman";
+option java_multiple_files = true;
+
+service SchemaRegistry {
+    rpc PublishSchema (PublishSchemaRequest) returns (PublishSchemaResponse) {}
+}
+
+message PublishSchemaRequest {
+    repeated ProtoFile proto_file = 1;
+}
+message PublishSchemaResponse {
+}
+
+message ProtoFile {
+    string path = 1;
+    bytes content = 2;
+}
