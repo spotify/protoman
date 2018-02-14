@@ -5,7 +5,6 @@ import io.grpc.ServerBuilder;
 import java.io.IOException;
 
 public class Service {
-
   private static final int GRPC_PORT = 8080;
 
   public static void main(final String...args) throws IOException {
