@@ -11,6 +11,11 @@ target
 .idea
 *.iml
 
+## vscode
+.settings
+.project
+.classpath
+
 ## Logs
 *.log
 
