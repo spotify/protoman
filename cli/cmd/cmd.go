@@ -1,17 +1,20 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spotify/protoman/cli/publish"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "protoman",
 	Short: "Protoman is a fantastic way of managing your protos",
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
+		fmt.Println("PROTOMAN PROTOMAN!")
+		fmt.Println("You probably need help, call me with -h")
 	},
 }
 
@@ -31,8 +34,16 @@ var versionCmd = &cobra.Command{
 var publishCmd = &cobra.Command{
 	Use:   "publish [path]",
 	Short: "Publish your proto(s) to the protoman registry",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("Path required")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Publishing...")
+		if _, err := os.Stat(args[0]); err == nil {
+			publish.Publish(args[0])
+		}
 	},
 }
 
