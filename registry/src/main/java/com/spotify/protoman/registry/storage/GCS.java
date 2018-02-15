@@ -1,4 +1,4 @@
-package com.spotify.protoman.storage;
+package com.spotify.protoman.registry.storage;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;

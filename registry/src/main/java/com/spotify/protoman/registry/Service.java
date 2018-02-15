@@ -1,4 +1,4 @@
-package com.spotify.protoman;
+package com.spotify.protoman.registry;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;

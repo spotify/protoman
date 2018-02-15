@@ -1,4 +1,4 @@
-package com.spotify.protoman;
+package com.spotify.protoman.registry;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
