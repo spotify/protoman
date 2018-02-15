@@ -3,6 +3,7 @@ syntax = "proto3";
 package spotify.protoman;
 
 option java_package = "com.spotify.protoman";
+option go_package = "registry";
 option java_multiple_files = true;
 
 service SchemaRegistry {
