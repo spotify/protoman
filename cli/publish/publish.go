@@ -28,12 +28,20 @@ func GetProtos(rootPath string) []string {
 
 // Publish protobufs
 func Publish(rootPath string) {
-	fmt.Println("Publishing started...")
-	for _, proto := range GetProtos(rootPath) {
-		err := validator.ValidateProto(proto)
-		if err != nil {
-			fmt.Printf("%s is invalid: %v\n", proto, err)
-			continue
+	protos := GetProtos(rootPath)
+	if len(protos) > 0 {
+		fmt.Printf("Found %v proto schema(s)\n\n", len(protos))
+		for _, proto := range GetProtos(rootPath) {
+
+			fmt.Printf("  Validating %s \n", proto)
+			err := validator.ValidateProto(proto)
+			if err != nil {
+				fmt.Printf("%s is invalid: %v\n", proto, err)
+				continue
+			}
+
+			fmt.Printf("  Publishing %s \n", proto)
 		}
+		fmt.Println("\nDone.")
 	}
 }
