@@ -1,5 +1,8 @@
 package com.spotify.protoman.registry;
 
+import com.spotify.protoman.PublishSchemaRequest;
+import com.spotify.protoman.PublishSchemaResponse;
+import com.spotify.protoman.SchemaRegistryGrpc;
 import io.grpc.stub.StreamObserver;
 
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {

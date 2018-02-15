@@ -9,22 +9,21 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>protoman-validation</artifactId>
+  <artifactId>protoman-descriptor-model</artifactId>
 
   <dependencies>
     <dependency>
-      <groupId>com.spotify</groupId>
-      <artifactId>protoman-descriptor-model</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value</artifactId>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
     </dependency>
   </dependencies>
 </project>

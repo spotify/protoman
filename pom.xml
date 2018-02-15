@@ -16,6 +16,7 @@
     <module>registry</module>
     <module>validation</module>
     <module>schema</module>
+    <module>descriptor-model</module>
   </modules>
 
   <properties>
