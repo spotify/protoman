@@ -26,3 +26,6 @@ tags
 /nbproject/
 
 Dockerfile.geoip
+
+# Golang
+vendor
