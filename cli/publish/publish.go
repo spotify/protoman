@@ -41,7 +41,7 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 }
 
 // Publish publishes all .proto file under given directory
-func Publish(root string) error {
+func Publish(root string, serverAddr string) error {
 	protoPaths, err := path.FindProtoFiles(root)
 	if err != nil {
 		return err
@@ -51,7 +51,6 @@ func Publish(root string) error {
 		return validationErr
 	}
 	if len(protos) > 0 {
-		serverAddr := "localhost:9111"
 		return upload(protos, serverAddr)
 	}
 	return nil

@@ -39,6 +39,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(validateCmd)
 	rootCmd.AddCommand(publishCmd)
+	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
 var versionCmd = &cobra.Command{
@@ -75,11 +76,14 @@ var publishCmd = &cobra.Command{
 		if len(args) < 1 {
 			return errors.New("Path required")
 		}
+		if cmd.Flag("server").Value.String() == "" {
+			return errors.New("--server must be specified when publishing")
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := publish.Publish(args[0]); err != nil {
+			if err := publish.Publish(args[0], cmd.Flag("server").Value.String()); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
