@@ -46,13 +46,26 @@ func getPackageName(r io.Reader) (string, error) {
 	return "", fmt.Errorf("Package name not found")
 }
 
-// ValidateProto validates a .proto file and returns a ProtoFile
-func ValidateProto(filePath string) (*registry.ProtoFile, error) {
-	fmt.Printf("  Validating %s \n", filePath)
+// checkPackageName validates that the proto package name matches the proto definition file's path
+func checkPackageName(packageName string, path string) error {
+	if packageName == "" {
+		return fmt.Errorf("Missing package name")
+	}
+	dir := filepath.Dir(path)
+	packagePath := strings.Replace(packageName, ".", "/", -1)
+	if !strings.HasSuffix(dir, packagePath) {
+		return fmt.Errorf("Package name does not match path, expected path to end with %s", packagePath)
+	}
+	return nil
+}
 
-	f, err := os.Open(filePath)
+// ValidateProto validates a .proto file and returns a ProtoFile
+func ValidateProto(path string) (*registry.ProtoFile, error) {
+	fmt.Printf("  Validating %s \n", path)
+
+	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to open "+filePath)
+		return nil, errors.Wrap(err, "Failed to open "+path)
 	}
 	defer f.Close()
 
@@ -61,11 +74,7 @@ func ValidateProto(filePath string) (*registry.ProtoFile, error) {
 		return nil, errors.Wrap(err, "Unable to parse proto file")
 	}
 
-	dir := filepath.Dir(filePath)
-	packagePath := strings.Replace(packageName, ".", "/", -1)
-	if !strings.HasSuffix(dir, packagePath) {
-		return nil, fmt.Errorf("Package path does not match filepath, expected directory path to end with %s", packagePath)
-	}
+	checkPackageName(packageName, path)
 
 	f.Seek(0, 0)
 	content, err := ioutil.ReadAll(f)

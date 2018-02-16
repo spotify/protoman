@@ -22,7 +22,7 @@ import (
 	"testing"
 )
 
-func TestGetPackage(t *testing.T) {
+func TestGetPackageName(t *testing.T) {
 	tt := []struct {
 		name                string
 		shouldFail          bool
@@ -50,6 +50,47 @@ func TestGetPackage(t *testing.T) {
 
 			if tc.expectedPackageName != packageName {
 				t.Fatalf("Expected package name %s; got %s", tc.expectedPackageName, packageName)
+			}
+
+		})
+	}
+}
+
+func TestCheckPackageName(t *testing.T) {
+
+	tt := []struct {
+		name          string
+		packageName   string
+		path          string
+		expectedError string
+	}{
+		{
+			name:          "ValidPackageName",
+			packageName:   "foo.bar",
+			path:          "bla/foo/bar/good.proto",
+			expectedError: "",
+		},
+		{
+			name:          "EmptyPackageName",
+			packageName:   "",
+			path:          "bla/foo/bar/bad.proto",
+			expectedError: "Missing package name",
+		},
+		{
+			name:          "PathMismatch",
+			packageName:   "foo.bar",
+			path:          "bla/bla/bad.proto",
+			expectedError: "Package name does not match path, expected path to end with foo/bar",
+		},
+	}
+	for _, tc := range tt {
+		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
+			actualError := checkPackageName(tc.packageName, tc.path)
+
+			if tc.expectedError == "" && actualError != nil {
+				t.Fatalf("Expected 'checkPackageName(%s, %s)' to succeed without error, got '%v' instead", tc.packageName, tc.path, actualError)
+			} else if tc.expectedError != "" && !(actualError != nil && actualError.Error() == tc.expectedError) {
+				t.Fatalf("Expected 'checkPackageName(%s, %s)' to throw error '%v', got '%v' instead", tc.packageName, tc.path, tc.expectedError, actualError)
 			}
 
 		})
