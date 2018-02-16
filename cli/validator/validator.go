@@ -9,6 +9,7 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/pkg/errors"
+	"github.com/spotify/protoman/cli/registry"
 )
 
 // getPackageName from proto
@@ -29,6 +30,7 @@ func getPackageName(r io.Reader) (string, error) {
 
 // ValidateProto validates a .proto file
 func ValidateProto(filePath string) error {
+	fmt.Printf("  Validating %s \n", filePath)
 	f, err := os.Open(filePath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to open "+filePath)
@@ -42,6 +44,15 @@ func ValidateProto(filePath string) error {
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	if !strings.HasSuffix(dir, packagePath) {
 		return fmt.Errorf("Package path does not match filepath, expected directory path to end with " + packagePath)
+	}
+	return nil
+}
+
+func ValidateProtos(protos []*registry.ProtoFile) error {
+	for _, proto := range protos {
+		if err := ValidateProto(proto.Path); err != nil {
+			return errors.Wrap(err, "invalid proto")
+		}
 	}
 	return nil
 }
