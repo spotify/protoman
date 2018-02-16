@@ -9,6 +9,7 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/pkg/errors"
+	"github.com/spotify/protoman/cli/path"
 	"github.com/spotify/protoman/cli/registry"
 )
 
@@ -55,4 +56,14 @@ func ValidateProtos(protos []*registry.ProtoFile) error {
 		}
 	}
 	return nil
+}
+
+// Validate validates all .proto file under given directory
+func Validate(root string) error {
+	protos, err := path.FindProtoFiles(root)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+	return ValidateProtos(protos)
 }
