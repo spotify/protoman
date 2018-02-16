@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/spotify/protoman/cli/path"
 	"github.com/spotify/protoman/cli/registry"
@@ -43,13 +42,13 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 
 // Publish publishes all .proto file under given directory
 func Publish(root string) error {
-	protos, err := path.FindProtoFiles(root)
+	protoPaths, err := path.FindProtoFiles(root)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
-	if err := validator.ValidateProtos(protos); err != nil {
 		return err
+	}
+	protos, validationErr := validator.ValidateProtos(protoPaths)
+	if validationErr != nil {
+		return validationErr
 	}
 	if len(protos) > 0 {
 		serverAddr := "localhost:9111"

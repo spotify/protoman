@@ -22,19 +22,18 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"github.com/spotify/protoman/cli/registry"
 )
 
 // FindProtoFiles return list over all .proto files under given directory
-func FindProtoFiles(rootPath string) ([]*registry.ProtoFile, error) {
-	protoFiles := []*registry.ProtoFile{}
+func FindProtoFiles(rootPath string) ([]string, error) {
+	protoFiles := []string{}
 
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 		if filepath.Ext(path) == ".proto" {
-			protoFiles = append(protoFiles, &registry.ProtoFile{Path: path})
+			protoFiles = append(protoFiles, path)
 		}
 		return nil
 	})

@@ -19,6 +19,7 @@ package validator
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +30,7 @@ import (
 	"github.com/spotify/protoman/cli/registry"
 )
 
-// getPackageName from proto
+// getPackageName reads the package name from a .proto file
 func getPackageName(r io.Reader) (string, error) {
 	parser := proto.NewParser(r)
 	def, err := parser.Parse()
@@ -45,41 +46,56 @@ func getPackageName(r io.Reader) (string, error) {
 	return "", fmt.Errorf("Package name not found")
 }
 
-// ValidateProto validates a .proto file
-func ValidateProto(filePath string) error {
+// ValidateProto validates a .proto file and returns a ProtoFile
+func ValidateProto(filePath string) (*registry.ProtoFile, error) {
 	fmt.Printf("  Validating %s \n", filePath)
+
 	f, err := os.Open(filePath)
 	if err != nil {
-		return errors.Wrap(err, "Failed to open "+filePath)
+		return nil, errors.Wrap(err, "Failed to open "+filePath)
 	}
 	defer f.Close()
+
 	packageName, err := getPackageName(f)
 	if err != nil {
-		return errors.Wrap(err, "Unable to parse proto file")
+		return nil, errors.Wrap(err, "Unable to parse proto file")
 	}
+
 	dir := filepath.Dir(filePath)
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	if !strings.HasSuffix(dir, packagePath) {
-		return fmt.Errorf("Package path does not match filepath, expected directory path to end with " + packagePath)
+		return nil, fmt.Errorf("Package path does not match filepath, expected directory path to end with %s", packagePath)
 	}
-	return nil
+
+	f.Seek(0, 0)
+	content, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to read proto file")
+	}
+
+	proto := &registry.ProtoFile{Path: packageName, Content: content}
+	return proto, nil
 }
 
-func ValidateProtos(protos []*registry.ProtoFile) error {
-	for _, proto := range protos {
-		if err := ValidateProto(proto.Path); err != nil {
-			return errors.Wrap(err, "invalid proto")
+// ValidateProtos valides .proto files and returns list of ProtoFiles
+func ValidateProtos(protoPaths []string) ([]*registry.ProtoFile, error) {
+	protos := make([]*registry.ProtoFile, len(protoPaths))
+	for i, protoPath := range protoPaths {
+		proto, err := ValidateProto(protoPath)
+		if err != nil {
+			return nil, errors.Wrap(err, "validation failed")
 		}
+		protos[i] = proto
 	}
-	return nil
+	return protos, nil
 }
 
 // Validate validates all .proto file under given directory
 func Validate(root string) error {
-	protos, err := path.FindProtoFiles(root)
+	protoPaths, err := path.FindProtoFiles(root)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
+		return err
 	}
-	return ValidateProtos(protos)
+	_, validationErr := ValidateProtos(protoPaths)
+	return validationErr
 }
