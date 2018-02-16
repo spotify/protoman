@@ -42,7 +42,10 @@ var publishCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			publish.Publish(args[0])
+			if err := publish.Publish(args[0]); err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	},
 }
