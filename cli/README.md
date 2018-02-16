@@ -1,11 +1,13 @@
 # Protoman CLI
 
-To build protoman CLI, run:
-```
-make build
+To compile protoman CLI, run:
+
+```sh
+make compile
 ```
 
-To test it, run:
-```
+To just test it, run:
+
+```sh
 make test
 ```
