@@ -32,5 +32,7 @@ tags
 
 Dockerfile.geoip
 
+build
+
 # Golang
 vendor
