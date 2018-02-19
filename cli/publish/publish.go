@@ -29,7 +29,7 @@ import (
 
 func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	fmt.Printf("Uploading to %s\n", serverAddr)
-	conn, err := grpc.Dial(serverAddr)
+	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		return errors.New("unable to connect to registry at " + serverAddr)
 	}
