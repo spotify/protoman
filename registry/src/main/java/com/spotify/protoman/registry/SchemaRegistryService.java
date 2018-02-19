@@ -16,35 +16,39 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import javax.annotation.Nullable;
 
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {
 
-  private final ProtoStore protoStore;
+  private final SchemaStorage schemaStorage;
   private final DescriptorBuilder descriptorBuilder;
   private final SchemaValidator schemaValidator;
 
-  private SchemaRegistryService(final ProtoStore protoStore,
+  private SchemaRegistryService(final SchemaStorage schemaStorage,
                                 final DescriptorBuilder descriptorBuilder,
                                 final SchemaValidator schemaValidator) {
-    this.protoStore = protoStore;
+    this.schemaStorage = schemaStorage;
     this.descriptorBuilder = descriptorBuilder;
     this.schemaValidator = schemaValidator;
   }
 
-  public static SchemaRegistryService create(final ProtoStore protoStore,
+  public static SchemaRegistryService create(final SchemaStorage schemaStorage,
                                              final DescriptorBuilder descriptorBuilder,
                                              final SchemaValidator schemaValidator) {
-    return new SchemaRegistryService(protoStore, descriptorBuilder, schemaValidator);
+    return new SchemaRegistryService(schemaStorage, descriptorBuilder, schemaValidator);
   }
 
   private void storeAllFiles(final TemporaryFileStorage fileStorage) {
-    protoStore.getAll().forEach(protoFile -> {
-      try {
-        fileStorage.storeFile(protoFile.getPath(), protoFile.getContent().toByteArray());
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    });
+    try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
+      tx.fetchAllFiles()
+          .forEach(file -> {
+            try {
+              fileStorage.storeFile(file.path().toString(), file.content().getBytes());
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
+    }
   }
 
   @Override
@@ -60,12 +64,18 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
       storeAllFiles(fileStorage);
       // Build FDS for all the files touched in this request IF they currently exist
       // in the registry
-      final DescriptorProtos.FileDescriptorSet currentFds =
-          descriptorBuilder.buildDescriptor(fileStorage.root(),
-              protoFilePaths.stream()
-                  .filter(relPath -> Files.exists(fileStorage.root().resolve(relPath)))
-                  .collect(toImmutableList()));
-      final DescriptorSet currentDs = DescriptorSet.create(currentFds, protoFilePaths::contains);
+      final DescriptorSet currentDs;
+      final ImmutableList<Path> currentPaths = protoFilePaths.stream()
+          .filter(relPath -> Files.exists(fileStorage.root().resolve(relPath)))
+          .collect(toImmutableList());
+      if (currentPaths.isEmpty()) {
+        currentDs = DescriptorSet.create(
+            DescriptorProtos.FileDescriptorSet.getDefaultInstance(), __ -> true);
+      } else {
+        final DescriptorProtos.FileDescriptorSet currentFds =
+            descriptorBuilder.buildDescriptor(fileStorage.root(), currentPaths);
+        currentDs = DescriptorSet.create(currentFds, protoFilePaths::contains);
+      }
 
       // Write any protos touched in this request
       for (final ProtoFile protoFile : request.getProtoFileList()) {
@@ -84,7 +94,18 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
         System.out.println(violation.description());
       });
 
-      protoStore.store(request.getProtoFileList().stream());
+      //schemaStorage.store(request.getProtoFileList().stream());
+      try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
+        request.getProtoFileList().forEach(protoFile -> {
+          tx.storeFile(
+              SchemaFile.create(
+                  Paths.get(protoFile.getPath()),
+                  protoFile.getContent().toStringUtf8()
+              )
+          );
+        });
+        tx.commit();
+      }
 
       responseObserver.onNext(PublishSchemaResponse.getDefaultInstance());
       responseObserver.onCompleted();

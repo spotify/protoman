@@ -33,14 +33,89 @@
       <version>2.0.5.Final</version>
     </dependency>
     <dependency>
-      <groupId>com.google.cloud</groupId>
-      <artifactId>google-cloud-storage</artifactId>
-      <version>1.14.0</version>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.1.4</version>
     </dependency>
+
+    <dependency>
+      <groupId>com.google.cloud.sql</groupId>
+      <artifactId>postgres-socket-factory</artifactId>
+      <version>1.0.5</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-meta</artifactId>
+      <version>3.10.5</version>
+    </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jooq</groupId>
+        <artifactId>jooq-codegen-maven</artifactId>
+        <version>3.10.5</version>
+        <executions>
+          <execution>
+            <id>jooq-codegen</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.1.4</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <!-- Uncomment to regenerate generated classes -->
+          <!--<skip>true</skip>-->
+          <jdbc>
+            <driver>org.postgresql.Driver</driver>
+            <url>jdbc:postgresql://35.187.80.11:5432/postgres</url>
+            <user>postgres</user>
+            <password>aiF1ahk7meech8ie</password>
+
+            <properties>
+              <property>
+                <key>ssl</key>
+                <value>false</value>
+              </property>
+            </properties>
+          </jdbc>
+
+          <generator>
+            <database>
+              <name>org.jooq.util.postgres.PostgresDatabase</name>
+              <includes>.*</includes>
+              <inputSchema>public</inputSchema>
+
+              <!--<forcedTypes>
+                <forcedType>
+                  <userType>java.lang.String</userType>
+                  <binding>com.spotify.schematools.registry.PostgresJsonbStringBinding</binding>
+                  <types>JSONB</types>
+                </forcedType>
+              </forcedTypes>-->
+            </database>
+
+            <target>
+              <packageName>com.spotify.protoman.registry.storage.jooq</packageName>
+              <directory>${project.build.sourceDirectory}</directory>
+            </target>
+          </generator>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
