@@ -74,7 +74,10 @@ func ValidateProto(path string) (*registry.ProtoFile, error) {
 		return nil, errors.Wrap(err, "Unable to parse proto file")
 	}
 
-	checkPackageName(packageName, path)
+	err = checkPackageName(packageName, path)
+	if err != nil {
+		return nil, err
+	}
 
 	f.Seek(0, 0)
 	content, err := ioutil.ReadAll(f)
