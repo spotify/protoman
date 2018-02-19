@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.base.Preconditions;
 import com.spotify.protoman.validation.SchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -12,10 +13,12 @@ import java.io.IOException;
 public class Main {
 
   private static final int GRPC_PORT = 8080;
-  private static final String DEFAULT_GCS_BUCKET = "protoman-staffan-test";
+  private static final String DEFAULT_GCS_BUCKET = System.getenv("GCS_BUCKET_NAME");
 
   public static void main(final String...args) throws IOException {
     final Storage gcsClient = createGcsClient(GoogleCredentials.getApplicationDefault());
+    Preconditions.checkNotNull(DEFAULT_GCS_BUCKET,
+        "env GCS_BUCKET_NAME is not set.");
     final Bucket bucket = gcsClient.get(DEFAULT_GCS_BUCKET);
     final ProtoStore protoStore = GcsProtoStore.create(bucket);
 
