@@ -18,9 +18,10 @@ package publish
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spotify/protoman/cli/path"
 	"github.com/spotify/protoman/cli/registry"
 	"github.com/spotify/protoman/cli/validator"
@@ -36,7 +37,12 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	defer conn.Close()
 	client := registry.NewSchemaRegistryClient(conn)
 	request := registry.PublishSchemaRequest{ProtoFile: protoFiles}
-	client.PublishSchema(context.Background(), &request)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
+
+	_, err = client.PublishSchema(ctx, &request)
+	if err != nil {
+		return errors.Wrap(err, "failed to upload schema")
+	}
 	return nil
 }
 
