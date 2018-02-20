@@ -40,6 +40,12 @@ func TestGetPackageName(t *testing.T) {
 			expectedPackageName: "spotify.protoman",
 			shouldFail:          false,
 		},
+		{
+			name:                "No package name",
+			input:               "",
+			expectedPackageName: "",
+			shouldFail:          true,
+		},
 	}
 	for _, tc := range tt {
 		t.Run(fmt.Sprintf(tc.name), func(t *testing.T) {
