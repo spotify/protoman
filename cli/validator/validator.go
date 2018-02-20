@@ -85,7 +85,10 @@ func ValidateProto(path string) (*registry.ProtoFile, error) {
 		return nil, errors.Wrap(err, "Unable to read proto file")
 	}
 
-	proto := &registry.ProtoFile{Path: packageName, Content: content}
+	proto := &registry.ProtoFile{
+		Path:    filepath.Join(strings.Replace(packageName, ".", "/", -1), filepath.Base(path)),
+		Content: content,
+	}
 	return proto, nil
 }
 
