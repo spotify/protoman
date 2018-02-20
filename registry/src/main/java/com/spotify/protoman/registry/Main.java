@@ -1,5 +1,7 @@
 package com.spotify.protoman.registry;
 
+import com.spotify.protoman.descriptor.DescriptorBuilder;
+import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
 import com.spotify.protoman.validation.SchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -29,14 +31,12 @@ public class Main {
         () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD)
     );
 
-    final DescriptorBuilder descriptorBuilder = ProtocDescriptorBuilder.create();
-
+    final DescriptorBuilder.Factory descriptorBuilderFactory = ProtocDescriptorBuilder.factory();
     final SchemaValidator schemaValidator = SchemaValidator.withDefaultRules();
-
     final SchemaVersioner schemaVersioner = ProtoSchemaVersioner.create();
 
     final SchemaRegistryService service = SchemaRegistryService.create(
-        schemaStorage, descriptorBuilder, schemaValidator, schemaVersioner);
+        schemaStorage, descriptorBuilderFactory, schemaValidator, schemaVersioner);
     final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
 
     grpcServer.start();
