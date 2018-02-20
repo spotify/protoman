@@ -11,25 +11,24 @@ import org.jooq.DSLContext;
 import org.jooq.Record1;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
-import org.postgresql.ds.PGConnectionPoolDataSource;
 
 public class SqlSchemaStorage implements SchemaStorage {
 
-  private PGConnectionPoolDataSource dataSource;
+  private final ConnectionFactory connectionFactory;
 
-  private SqlSchemaStorage(final PGConnectionPoolDataSource dataSource) {
-    this.dataSource = dataSource;
+  private SqlSchemaStorage(final ConnectionFactory connectionFactory) {
+    this.connectionFactory = connectionFactory;
   }
 
-  public static SqlSchemaStorage create(final PGConnectionPoolDataSource dataSource) {
-    return new SqlSchemaStorage(dataSource);
+  public static SqlSchemaStorage create(final ConnectionFactory connectionFactory) {
+    return new SqlSchemaStorage(connectionFactory);
   }
 
   @Override
   public Transaction open() {
     final Connection connection;
     try {
-      connection = dataSource.getConnection();
+      connection = connectionFactory.getConnection();
       connection.setAutoCommit(false);
     } catch (SQLException e) {
       // TODO(staffan): do proper checked exception
@@ -104,5 +103,11 @@ public class SqlSchemaStorage implements SchemaStorage {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  @FunctionalInterface
+  public interface ConnectionFactory {
+
+    Connection getConnection() throws SQLException;
   }
 }

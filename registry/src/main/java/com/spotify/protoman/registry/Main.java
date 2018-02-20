@@ -4,22 +4,30 @@ import com.spotify.protoman.validation.SchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
-import org.postgresql.ds.PGConnectionPoolDataSource;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class Main {
 
   private static final int GRPC_PORT = 8080;
 
-  public static void main(final String...args) throws IOException {
-    final PGConnectionPoolDataSource dataSource = new PGConnectionPoolDataSource();
-    dataSource.setServerName("35.187.80.11");
-    dataSource.setDatabaseName("postgres");
-    dataSource.setPortNumber(5432);
-    dataSource.setUser("postgres");
-    dataSource.setPassword("aiF1ahk7meech8ie");
+  private static final String DB_NAME = "postgres";
+  private static final String DB_USER = "postgres";
+  private static final String DB_PASSWORD = "aiF1ahk7meech8ie";
+  private static final String CLOUD_SQL_INSTANCE_CONNECTION_NAME =
+      "fabric-rnd:europe-west1:protoman-test";
 
+  public static void main(final String...args) throws IOException, SQLException {
+    final String jdbcUrl = String.format(
+        "jdbc:postgresql://google/%s?socketFactory="
+            + "&socketFactoryArg=%s",
+        DB_NAME,
+        CLOUD_SQL_INSTANCE_CONNECTION_NAME
+    );
 
-    final SchemaStorage schemaStorage = SqlSchemaStorage.create(dataSource);
+    final SchemaStorage schemaStorage = SqlSchemaStorage.create(
+        () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD)
+    );
 
     final DescriptorBuilder descriptorBuilder = ProtocDescriptorBuilder.create();
 

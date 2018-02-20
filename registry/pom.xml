@@ -81,16 +81,20 @@
             <artifactId>postgresql</artifactId>
             <version>42.1.4</version>
           </dependency>
+          <dependency>
+            <groupId>com.google.cloud.sql</groupId>
+            <artifactId>postgres-socket-factory</artifactId>
+            <version>1.0.5</version>
+          </dependency>
         </dependencies>
         <configuration>
           <!-- Uncomment to regenerate generated classes -->
-          <!--<skip>true</skip>-->
+          <skip>true</skip>
           <jdbc>
             <driver>org.postgresql.Driver</driver>
-            <url>jdbc:postgresql://35.187.80.11:5432/postgres</url>
+            <url>jdbc:postgresql://google/postgres?socketFactory=com.google.cloud.sql.postgres.SocketFactory&amp;socketFactoryArg=fabric-rnd:europe-west1:protoman-test</url>
             <user>postgres</user>
             <password>aiF1ahk7meech8ie</password>
-
             <properties>
               <property>
                 <key>ssl</key>
