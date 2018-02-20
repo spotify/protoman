@@ -1,5 +1,6 @@
 package com.spotify.protoman.registry;
 
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public interface SchemaStorage {
@@ -14,7 +15,7 @@ public interface SchemaStorage {
 
     void storePackageVersion(String protoPackage, SchemaVersion version);
 
-    SchemaVersion getPackageVersion(String protoPackage);
+    Optional<SchemaVersion> getPackageVersion(String protoPackage);
 
     void commit();
 

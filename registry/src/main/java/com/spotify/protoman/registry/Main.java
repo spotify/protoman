@@ -19,7 +19,7 @@ public class Main {
 
   public static void main(final String...args) throws IOException, SQLException {
     final String jdbcUrl = String.format(
-        "jdbc:postgresql://google/%s?socketFactory="
+        "jdbc:postgresql://google/%s?socketFactory=com.google.cloud.sql.postgres.SocketFactory"
             + "&socketFactoryArg=%s",
         DB_NAME,
         CLOUD_SQL_INSTANCE_CONNECTION_NAME
@@ -33,8 +33,10 @@ public class Main {
 
     final SchemaValidator schemaValidator = SchemaValidator.withDefaultRules();
 
+    final SchemaVersioner schemaVersioner = ProtoSchemaVersioner.create();
+
     final SchemaRegistryService service = SchemaRegistryService.create(
-        schemaStorage, descriptorBuilder, schemaValidator);
+        schemaStorage, descriptorBuilder, schemaValidator, schemaVersioner);
     final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
 
     grpcServer.start();

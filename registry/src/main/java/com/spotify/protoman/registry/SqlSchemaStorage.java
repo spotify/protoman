@@ -2,6 +2,7 @@ package com.spotify.protoman.registry;
 
 import com.spotify.protoman.registry.storage.jooq.Tables;
 import com.spotify.protoman.registry.storage.jooq.tables.records.FileRecord;
+import com.spotify.protoman.registry.storage.jooq.tables.records.PackageVersionRecord;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -78,12 +79,39 @@ public class SqlSchemaStorage implements SchemaStorage {
 
     @Override
     public void storePackageVersion(final String protoPackage, final SchemaVersion version) {
-      throw new UnsupportedOperationException();
+      final PackageVersionRecord record = new PackageVersionRecord();
+      record.setPackage(protoPackage);
+      record.setMajor(version.major());
+      record.setMinor(version.minor());
+      record.setPatch(version.patch());
+
+      final Optional<Integer> existingId =
+          ctx.select(Tables.PACKAGE_VERSION.ID)
+              .from(Tables.PACKAGE_VERSION)
+              .where(Tables.PACKAGE_VERSION.PACKAGE.eq(protoPackage))
+              .fetchOptional()
+              .map(Record1::value1);
+
+      if (existingId.isPresent()) {
+        ctx.update(Tables.PACKAGE_VERSION)
+            .set(record)
+            .where(Tables.PACKAGE_VERSION.ID.eq(existingId.get()))
+            .execute();
+      } else {
+        ctx.insertInto(Tables.PACKAGE_VERSION)
+            .set(record)
+            .execute();
+      }
     }
 
     @Override
-    public SchemaVersion getPackageVersion(final String protoPackage) {
-      throw new UnsupportedOperationException();
+    public Optional<SchemaVersion> getPackageVersion(final String protoPackage) {
+      return ctx.select(
+          Tables.PACKAGE_VERSION.MAJOR, Tables.PACKAGE_VERSION.MINOR, Tables.PACKAGE_VERSION.PATCH)
+          .from(Tables.PACKAGE_VERSION)
+          .where(Tables.PACKAGE_VERSION.PACKAGE.eq(protoPackage))
+          .fetchOptional()
+          .map(record -> SchemaVersion.create(record.value1(), record.value2(), record.value3()));
     }
 
     @Override
