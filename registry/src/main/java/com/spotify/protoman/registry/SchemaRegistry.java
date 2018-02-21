@@ -15,8 +15,11 @@ import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 public class SchemaRegistry implements SchemaPublisher {
 
@@ -55,10 +58,11 @@ public class SchemaRegistry implements SchemaPublisher {
 
       // TODO(staffan): Reject changes if there are severe violations
 
-      // Store files
-      schemaFiles.forEach(tx::storeFile);
+      // Store files, but only for protos that changed
+      updatedFiles(schemaFiles.stream(), descriptorSetPair.current(), descriptorSetPair.candidate())
+          .forEach(tx::storeFile);
 
-      // Update package versions
+      // Update package versions (only for packages that have changed)
       final ImmutableMap<String, SchemaVersionPair> publishedPackages =
           updatePackageVersions(tx, descriptorSetPair);
 
@@ -126,13 +130,43 @@ public class SchemaRegistry implements SchemaPublisher {
 
       publishedPackages.put(
           protoPackage,
-          SchemaVersionPair.create(currentVersion.orElse(null), candidateVersion)
+          SchemaVersionPair.create(candidateVersion, currentVersion.orElse(null))
       );
 
-      tx.storePackageVersion(protoPackage, candidateVersion);
+      if (!Objects.equals(currentVersion.orElse(null), candidateVersion)) {
+        tx.storePackageVersion(protoPackage, candidateVersion);
+      }
     });
 
     return ImmutableMap.copyOf(publishedPackages);
+  }
+
+  /**
+   * Filters a stream of {@link SchemaFile}s returning only those that have been changed (in any
+   * way, including formatting and comment changes. The exemption to this is that trailing
+   * newline changes will not be considered as changes).
+   */
+  private static Stream<SchemaFile> updatedFiles(final Stream<SchemaFile> schemaFiles,
+                                                 final DescriptorSet current,
+                                                 final DescriptorSet candidate) {
+    final ImmutableMap<String, FileDescriptor> currentFileDescriptors =
+        current.fileDescriptors().stream()
+            .collect(toImmutableMap(FileDescriptor::fullName, Function.identity()));
+    final ImmutableMap<String, FileDescriptor> candidateFileDescriptors =
+        candidate.fileDescriptors().stream()
+            .collect(toImmutableMap(FileDescriptor::fullName, Function.identity()));
+
+    return schemaFiles.filter(schemaFile -> {
+      @Nullable final FileDescriptor currentFd =
+          currentFileDescriptors.get(schemaFile.path().toString());
+      if (currentFd == null) {
+        return true;
+      }
+
+      final FileDescriptor candidateFd =
+          candidateFileDescriptors.get(schemaFile.path().toString());
+      return !Objects.equals(candidateFd.toProto(), currentFd.toProto());
+    });
   }
 
   @AutoValue
