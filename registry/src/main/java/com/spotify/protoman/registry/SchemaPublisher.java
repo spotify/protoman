@@ -4,6 +4,8 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.spotify.protoman.validation.ValidationViolation;
+import java.util.Optional;
+import javax.annotation.Nullable;
 
 public interface SchemaPublisher {
 
@@ -27,10 +29,13 @@ public interface SchemaPublisher {
 
     public abstract SchemaVersion version();
 
-    public abstract SchemaVersion prevVersion();
+    public abstract Optional<SchemaVersion> prevVersion();
 
-    public static SchemaVersionPair create(final SchemaVersion version, SchemaVersion prevVersion) {
-      return new AutoValue_SchemaPublisher_SchemaVersionPair(version, prevVersion);
+    public static SchemaVersionPair create(final SchemaVersion version,
+                                           @Nullable final SchemaVersion prevVersion) {
+      return new AutoValue_SchemaPublisher_SchemaVersionPair(
+          version, Optional.ofNullable(prevVersion)
+      );
     }
   }
 }

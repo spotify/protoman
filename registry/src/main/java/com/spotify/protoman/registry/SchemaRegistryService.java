@@ -39,12 +39,16 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
 
       result.violations().forEach(SchemaRegistryService::validationViolationToProto);
 
-      result.publishedPackages().forEach((protoPackage, versions) ->
-          responseBuilder.addPublishResult(PublishResult.newBuilder()
-              .setPackage(protoPackage)
-              .setPrevVersion(schemaVersionToProto(versions.prevVersion()))
-              .setVersion(schemaVersionToProto(versions.version()))
-              .build())
+      result.publishedPackages().forEach(
+          (protoPackage, versions) -> {
+            final PublishResult.Builder builder = PublishResult.newBuilder()
+                .setPackage(protoPackage)
+                .setVersion(schemaVersionToProto(versions.version()));
+            versions.prevVersion()
+                .map(SchemaRegistryService::schemaVersionToProto)
+                .ifPresent(builder::setPrevVersion);
+            responseBuilder.addPublishResult(builder.build());
+          }
       );
 
       responseObserver.onNext(responseBuilder.build());
