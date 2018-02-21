@@ -1,7 +1,7 @@
 package com.spotify.protoman.descriptor;
 
 import java.nio.file.Path;
-import java.util.List;
+import java.util.stream.Stream;
 
 public interface DescriptorBuilder extends AutoCloseable {
 
@@ -11,7 +11,7 @@ public interface DescriptorBuilder extends AutoCloseable {
   /**
    * Can safely be called multiple times (you can call addProtoFile inbetween).
    */
-  DescriptorSet buildDescriptor(List<Path> paths);
+  DescriptorSet buildDescriptor(Stream<Path> paths);
 
   interface Factory {
 

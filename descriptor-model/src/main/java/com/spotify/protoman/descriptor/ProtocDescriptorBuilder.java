@@ -1,6 +1,9 @@
 package com.spotify.protoman.descriptor;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
+
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.protobuf.DescriptorProtos;
 import java.io.IOException;
@@ -8,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ProtocDescriptorBuilder implements DescriptorBuilder {
 
@@ -42,21 +46,23 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
   }
 
   @Override
-  public DescriptorSet buildDescriptor(final List<Path> paths) {
-    if (paths.isEmpty()) {
+  public DescriptorSet buildDescriptor(final Stream<Path> paths) {
+    final ImmutableList<Path> pathsList = paths.collect(toImmutableList());
+    if (pathsList.isEmpty()) {
       return DescriptorSet.empty();
     }
 
     try {
-      final DescriptorProtos.FileDescriptorSet fileDescriptorSet = buildFileDescriptorSet(paths);
-      return DescriptorSet.create(fileDescriptorSet, paths::contains);
+      final DescriptorProtos.FileDescriptorSet fileDescriptorSet =
+          buildFileDescriptorSet(pathsList.stream());
+      return DescriptorSet.create(fileDescriptorSet, pathsList::contains);
     } catch (IOException | InterruptedException e) {
       // TODO(staffan):
       throw new RuntimeException(e);
     }
   }
 
-  private DescriptorProtos.FileDescriptorSet buildFileDescriptorSet(final List<Path> paths)
+  private DescriptorProtos.FileDescriptorSet buildFileDescriptorSet(final Stream<Path> paths)
       throws IOException, InterruptedException {
     final Path descriptorFilePath = Files.createTempFile("schema-registry-descriptor-", ".pb");
     try {
@@ -68,7 +74,7 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
       command.add("--include_source_info");
       command.add("--include_imports");
 
-      paths.stream().map(Path::toString).forEach(command::add);
+      paths.map(Path::toString).forEach(command::add);
 
       final Process process =
           new ProcessBuilder(command).directory(fileStorage.root().toFile()).inheritIO().start();

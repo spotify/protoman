@@ -1,6 +1,5 @@
 package com.spotify.protoman.registry;
 
-import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
 import com.spotify.protoman.validation.SchemaValidator;
 import io.grpc.Server;
@@ -20,23 +19,9 @@ public class Main {
       "fabric-rnd:europe-west1:protoman-test";
 
   public static void main(final String...args) throws IOException, SQLException {
-    final String jdbcUrl = String.format(
-        "jdbc:postgresql://google/%s?socketFactory=com.google.cloud.sql.postgres.SocketFactory"
-            + "&socketFactoryArg=%s",
-        DB_NAME,
-        CLOUD_SQL_INSTANCE_CONNECTION_NAME
-    );
+    final SchemaRegistry schemaRegistry = createSchemaRegistry();
 
-    final SchemaStorage schemaStorage = SqlSchemaStorage.create(
-        () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD)
-    );
-
-    final DescriptorBuilder.Factory descriptorBuilderFactory = ProtocDescriptorBuilder.factory();
-    final SchemaValidator schemaValidator = SchemaValidator.withDefaultRules();
-    final SchemaVersioner schemaVersioner = ProtoSchemaVersioner.create();
-
-    final SchemaRegistryService service = SchemaRegistryService.create(
-        schemaStorage, descriptorBuilderFactory, schemaValidator, schemaVersioner);
+    final SchemaRegistryService service = SchemaRegistryService.create(schemaRegistry);
     final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
 
     grpcServer.start();
@@ -47,5 +32,25 @@ public class Main {
       } catch (InterruptedException e) {
       }
     }
+  }
+
+  private static SchemaRegistry createSchemaRegistry() {
+    final String jdbcUrl = String.format(
+        "jdbc:postgresql://google/%s?socketFactory=com.google.cloud.sql.postgres.SocketFactory"
+        + "&socketFactoryArg=%s",
+        DB_NAME,
+        CLOUD_SQL_INSTANCE_CONNECTION_NAME
+    );
+
+    final SchemaStorage schemaStorage = SqlSchemaStorage.create(
+        () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD)
+    );
+
+    return SchemaRegistry.create(
+        schemaStorage,
+        SchemaValidator.withDefaultRules(),
+        ProtoSchemaVersioner.create(),
+        ProtocDescriptorBuilder.factory()
+    );
   }
 }
