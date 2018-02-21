@@ -1,7 +1,7 @@
 package com.spotify.protoman.registry;
 
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
-import com.spotify.protoman.validation.SchemaValidator;
+import com.spotify.protoman.validation.DefaultSchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
@@ -48,7 +48,7 @@ public class Main {
 
     return SchemaRegistry.create(
         schemaStorage,
-        SchemaValidator.withDefaultRules(),
+        DefaultSchemaValidator.withDefaultRules(),
         SemverSchemaVersioner.create(),
         ProtocDescriptorBuilder.factory()
     );
