@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -67,6 +69,12 @@ public abstract class DescriptorSet {
         .forEach(grouping -> compare(visitor, grouping.a(), grouping.b()));
     group(a, b, d -> d.fileDescriptors().stream().flatMap(x -> x.services().stream()))
         .forEach(grouping -> compare(visitor, grouping.a(), grouping.b()));
+  }
+
+  public Optional<FileDescriptor> findFileByPath(final Path path) {
+    return fileDescriptors().stream()
+        .filter(fileDescriptor -> Objects.equals(fileDescriptor.filePath(), path))
+        .findFirst();
   }
 
   private static void compare(final ComparingVisitor visitor,

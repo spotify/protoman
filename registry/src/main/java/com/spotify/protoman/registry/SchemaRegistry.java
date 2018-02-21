@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 public class SchemaRegistry implements SchemaPublisher {
 
@@ -149,23 +148,19 @@ public class SchemaRegistry implements SchemaPublisher {
   private static Stream<SchemaFile> updatedFiles(final Stream<SchemaFile> schemaFiles,
                                                  final DescriptorSet current,
                                                  final DescriptorSet candidate) {
-    final ImmutableMap<String, FileDescriptor> currentFileDescriptors =
-        current.fileDescriptors().stream()
-            .collect(toImmutableMap(FileDescriptor::fullName, Function.identity()));
-    final ImmutableMap<String, FileDescriptor> candidateFileDescriptors =
-        candidate.fileDescriptors().stream()
-            .collect(toImmutableMap(FileDescriptor::fullName, Function.identity()));
-
     return schemaFiles.filter(schemaFile -> {
-      @Nullable final FileDescriptor currentFd =
-          currentFileDescriptors.get(schemaFile.path().toString());
-      if (currentFd == null) {
+      final Optional<FileDescriptor> currentFd = current.findFileByPath(schemaFile.path());
+      if (!currentFd.isPresent()) {
         return true;
       }
 
-      final FileDescriptor candidateFd =
-          candidateFileDescriptors.get(schemaFile.path().toString());
-      return !Objects.equals(candidateFd.toProto(), currentFd.toProto());
+      final Optional<FileDescriptor> candidateFd =
+          candidate.findFileByPath(schemaFile.path());
+
+      return !Objects.equals(
+          currentFd.get().toProto(),
+          candidateFd.map(FileDescriptor::toProto).orElse(null)
+      );
     });
   }
 
