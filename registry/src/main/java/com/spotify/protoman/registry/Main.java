@@ -49,7 +49,7 @@ public class Main {
     return SchemaRegistry.create(
         schemaStorage,
         SchemaValidator.withDefaultRules(),
-        ProtoSchemaVersioner.create(),
+        SemverSchemaVersioner.create(),
         ProtocDescriptorBuilder.factory()
     );
   }

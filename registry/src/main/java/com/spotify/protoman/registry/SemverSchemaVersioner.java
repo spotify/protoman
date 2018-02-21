@@ -13,15 +13,30 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
-public class ProtoSchemaVersioner implements SchemaVersioner {
+/**
+ * Versions schemas according to semantic versioning, with some caveats.
+ *
+ * The major versions is always derived from the package. E.g. foo.bar.v2 and foo.bar are
+ * assigned major version 2 and 1 respectively. The versioner does not prevent breaking changes
+ * and does not bump the major version in case of breaking changes - that has to be handled
+ * elsewhere.
+ *
+ * Any type additions or changes cause the minor version to increased. Comment and formatting
+ * changes cause the patch version to be increased.
+ *
+ * Changing the ordering of definitions in a proto file will cause the minor version to be bumped,
+ * even though technically nothing was changed. For example, if you change the order in which 2
+ * fields in a message are defined.
+ */
+public class SemverSchemaVersioner implements SchemaVersioner {
 
   private static final Pattern MAJOR_VERSION_RE = Pattern.compile(".*\\.v(?<major>\\d+)$");
 
-  private ProtoSchemaVersioner() {
+  private SemverSchemaVersioner() {
   }
 
-  public static ProtoSchemaVersioner create() {
-    return new ProtoSchemaVersioner();
+  public static SemverSchemaVersioner create() {
+    return new SemverSchemaVersioner();
   }
 
   @Override

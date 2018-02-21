@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class ProtoSchemaVersionerTest {
+public class SemverSchemaVersionerTest {
 
   @Test
   @Parameters(method = "testParams")
@@ -19,7 +19,7 @@ public class ProtoSchemaVersionerTest {
                                    final String protoPackage,
                                    final SchemaVersion currentVersion,
                                    final SchemaVersion expectedVersion) throws Exception {
-    final ProtoSchemaVersioner sut = ProtoSchemaVersioner.create();
+    final SemverSchemaVersioner sut = SemverSchemaVersioner.create();
 
     final SchemaRegistry.DescriptorSetPair descriptorSetPair = Util.buildDescriptorSetPair(root);
 
