@@ -62,6 +62,11 @@
         <artifactId>java-hamcrest</artifactId>
         <version>2.0.0.0</version>
       </dependency>
+      <dependency>
+        <groupId>pl.pragmatists</groupId>
+        <artifactId>JUnitParams</artifactId>
+        <version>1.1.1</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 

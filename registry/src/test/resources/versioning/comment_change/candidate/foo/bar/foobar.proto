@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package foo.bar;
+
+message Foobar {
+    // A comment!
+    int32 foobar = 1;
+}
