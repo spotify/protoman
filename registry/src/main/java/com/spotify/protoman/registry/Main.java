@@ -25,9 +25,13 @@ public class Main {
         CLOUD_SQL_INSTANCE_CONNECTION_NAME
     );
 
-    final SchemaStorage schemaStorage = SqlSchemaStorage.create(
-        () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD)
-    );
+    final SchemaStorage schemaStorage;
+    if ("true".equalsIgnoreCase(System.getenv("GCS"))) {
+      schemaStorage = new SchemaStorageAdapter(new GcsSchemaStorage("protoman"));
+    } else {
+      schemaStorage = SqlSchemaStorage.create(
+          () -> DriverManager.getConnection(jdbcUrl, DB_USER, DB_PASSWORD));
+    }
 
     final DescriptorBuilder descriptorBuilder = ProtocDescriptorBuilder.create();
 
