@@ -68,7 +68,10 @@ public class SchemaRegistry implements SchemaPublisher {
       final ImmutableList<ValidationViolation> violations =
           schemaValidator.validate(currentDs, candidateDs);
 
-      // TODO(staffan): Reject changes if there are severe violations
+      // TODO(staffan): Don't treat all violations as fatal
+      if (!violations.isEmpty()) {
+        return PublishResult.error("Validation failed", violations);
+      }
 
       // Store files, but only for protos that changed
       updatedFiles(schemaFiles.stream(), currentDs, candidateDs).forEach(tx::storeFile);

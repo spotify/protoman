@@ -49,7 +49,9 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
               )
       );
 
-      result.violations().forEach(SchemaRegistryService::validationViolationToProto);
+      result.violations().stream()
+          .map(SchemaRegistryService::validationViolationToProto)
+          .forEach(responseBuilder::addViolation);
 
       result.publishedPackages().forEach(
           (protoPackage, versions) -> {
