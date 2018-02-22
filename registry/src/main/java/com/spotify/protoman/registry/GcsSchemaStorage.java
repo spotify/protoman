@@ -37,6 +37,7 @@ public class GcsSchemaStorage implements SchemaStorage2 {
   private static final String INDEX_BLOB_NAME = "index.pb";
   private static final String CONTENT_BLOB_NAME_TEMPLATE = "protos/%s/%s/%s.pb";
   private static final HashFunction CONTENT_HASH_FUNCTION = Hashing.sha256();
+  private static final int GCS_PRECONDITION_FAILED = 412;
 
   private final Storage storage;
   private final String bucket;
@@ -44,13 +45,22 @@ public class GcsSchemaStorage implements SchemaStorage2 {
   public GcsSchemaStorage(String bucket) {
     this.bucket = Objects.requireNonNull(bucket);
     storage = StorageOptions.getDefaultInstance().getService();
+    tryInitBucket();
   }
 
-  public void initBucket() {
-    final Blob blob = storage.create(BlobInfo.newBuilder(bucket, INDEX_BLOB_NAME).build(),
-        ProtoIndex.EMPTY_INDEX);
 
-    logger.info("Init bucket: Writing an empty index file in bucket {}", bucket);
+  private void tryInitBucket() {
+    //Create an empty index file iff there is no index file in the bucket
+    try {
+      storage.create(BlobInfo.newBuilder(bucket, INDEX_BLOB_NAME).build(),
+          ProtoIndex.EMPTY_INDEX, Storage.BlobTargetOption.doesNotExist());
+      logger.info("Init bucket: Writing an empty index file in bucket {}", bucket);
+    } catch (StorageException ex) {
+      // allow precondition failed, which means we already have an index
+      if (ex.getCode() != GCS_PRECONDITION_FAILED) {
+        throw ex;
+      }
+    }
   }
 
   @Override
@@ -242,7 +252,6 @@ public class GcsSchemaStorage implements SchemaStorage2 {
 
   public static void main(String... args) {
     final GcsSchemaStorage storage = new GcsSchemaStorage("protoman");
-    //storage.initBucket();
 
     try (final Transaction tx = storage.open()) {
 
