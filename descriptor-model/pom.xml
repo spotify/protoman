@@ -36,5 +36,15 @@
       <artifactId>java-hamcrest</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.spotify</groupId>
+      <artifactId>hamcrest-optional</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.spotify</groupId>
+      <artifactId>hamcrest-pojo</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 </project>

@@ -1,6 +1,9 @@
 package com.spotify.protoman.descriptor;
 
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import java.nio.file.Path;
@@ -31,6 +34,68 @@ public class ProtocDescriptorBuilderTest {
     assertThat(
         descriptorSet.fileDescriptors(),
         hasSize(2)
+    );
+  }
+
+  @Test
+  public void testBuildDescriptor_ensureDependenciesIncluded() throws Exception {
+    final DescriptorBuilder sut = ProtocDescriptorBuilder.factoryBuilder()
+        .build()
+        .newDescriptorBuilder();
+
+    // We're creating the descriptor for 1.proto, but add 2.proto as well since it's a dependency
+    // of 1.proto
+    final Path path1 = Paths.get("foo/bar/1.proto");
+    final Path path2 = Paths.get("foo/bar/2.proto");
+    sut.setProtoFile(
+        path1,
+        "syntax = 'proto2'; import 'foo/bar/2.proto'; message One { optional Two two = 1; }"
+    );
+    sut.setProtoFile(path2, "syntax = 'proto3'; message Two {}");
+
+    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path1));
+
+    assertThat(
+        descriptorSet.fileDescriptors(),
+        hasSize(1)
+    );
+
+    assertThat(
+        descriptorSet.findFileByPath(path1)
+            .get()
+            .findMessageByName("One")
+            .findFieldByName("two")
+            .messageType()
+            .name(),
+        equalTo("Two")
+    );
+  }
+
+  @Test
+  public void testBuildDescriptor_ensureSourceCodeInfoIncluded() throws Exception {
+    final DescriptorBuilder sut = ProtocDescriptorBuilder.factoryBuilder()
+        .build()
+        .newDescriptorBuilder();
+
+    final Path path = Paths.get("foo/bar/abc.proto");
+    sut.setProtoFile(
+        path,
+        "syntax = 'proto3';\n"
+        + "// It's an awesome type\n"
+        + "message MyCoolType {\n"
+        + "  int32 a_field = 1;\n"
+        + "}"
+    );
+
+    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path));
+    final MessageDescriptor typeDescriptor =
+        descriptorSet.findFileByPath(path).get().findMessageByName("MyCoolType");
+    assertThat(
+        typeDescriptor.sourceCodeInfo(),
+        optionalWithValue(
+            pojo(SourceCodeInfo.class)
+                .where("leadingComments", equalTo(" It's an awesome type\n"))
+        )
     );
   }
 
