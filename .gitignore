@@ -30,8 +30,6 @@ created_job_ids
 tags
 /nbproject/
 
-Dockerfile.geoip
-
 build
 
 # Golang
