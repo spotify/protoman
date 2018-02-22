@@ -3,8 +3,11 @@ package com.spotify.protoman.descriptor;
 import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,10 +32,15 @@ public class ProtocDescriptorBuilderTest {
     sut.setProtoFile(path1, "syntax = 'proto2'; message One {}");
     sut.setProtoFile(path2, "syntax = 'proto3'; message Two {}");
 
-    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path1, path2));
+    final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path1, path2));
 
     assertThat(
-        descriptorSet.fileDescriptors(),
+        result.compilationError(),
+        is(nullValue())
+    );
+
+    assertThat(
+        result.descriptorSet().fileDescriptors(),
         hasSize(2)
     );
   }
@@ -53,15 +61,15 @@ public class ProtocDescriptorBuilderTest {
     );
     sut.setProtoFile(path2, "syntax = 'proto3'; message Two {}");
 
-    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path1));
+    final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path1));
 
     assertThat(
-        descriptorSet.fileDescriptors(),
+        result.descriptorSet().fileDescriptors(),
         hasSize(1)
     );
 
     assertThat(
-        descriptorSet.findFileByPath(path1)
+        result.descriptorSet().findFileByPath(path1)
             .get()
             .findMessageByName("One")
             .findFieldByName("two")
@@ -87,9 +95,9 @@ public class ProtocDescriptorBuilderTest {
         + "}"
     );
 
-    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path));
+    final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path));
     final MessageDescriptor typeDescriptor =
-        descriptorSet.findFileByPath(path).get().findMessageByName("MyCoolType");
+        result.descriptorSet().findFileByPath(path).get().findMessageByName("MyCoolType");
     assertThat(
         typeDescriptor.sourceCodeInfo(),
         optionalWithValue(
@@ -110,10 +118,10 @@ public class ProtocDescriptorBuilderTest {
     sut.setProtoFile(path, "derp");
     sut.setProtoFile(path, "syntax = 'proto3';");
 
-    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.of(path));
+    final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path));
 
     assertThat(
-        descriptorSet.fileDescriptors(),
+        result.descriptorSet().fileDescriptors(),
         hasSize(1)
     );
   }
@@ -123,9 +131,12 @@ public class ProtocDescriptorBuilderTest {
     final DescriptorBuilder sut = ProtocDescriptorBuilder.factoryBuilder()
         .build()
         .newDescriptorBuilder();
-    final DescriptorSet descriptorSet = sut.buildDescriptor(Stream.empty());
+
+    sut.setProtoFile(Paths.get("foo/bar/qux.proto"), "syntax = 'proto3';");
+
+    final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.empty());
     assertThat(
-        descriptorSet.fileDescriptors(),
+        result.descriptorSet().fileDescriptors(),
         hasSize(0)
     );
   }
@@ -135,12 +146,15 @@ public class ProtocDescriptorBuilderTest {
     final DescriptorBuilder sut = ProtocDescriptorBuilder.factoryBuilder()
         .build()
         .newDescriptorBuilder();
-    sut.setProtoFile(Paths.get("foo/bar/qux.proto"), "derp");
+    sut.setProtoFile(Paths.get("foo/bar/qux.proto"), "syntax = 'proto3'; derp");
 
-    exception.expect(RuntimeException.class);
-
-    final DescriptorSet descriptorSet = sut.buildDescriptor(
+    final DescriptorBuilder.Result result = sut.buildDescriptor(
         Stream.of(Paths.get("foo/bar/qux.proto"))
+    );
+
+    assertThat(
+        result.compilationError(),
+        containsString("Expected top-level statement")
     );
   }
 
@@ -152,10 +166,8 @@ public class ProtocDescriptorBuilderTest {
         .newDescriptorBuilder();
     sut.setProtoFile(Paths.get("foo/bar/qux.proto"), "syntax = 'proto3';");
 
-    exception.expect(RuntimeException.class);
+    exception.expect(DescriptorBuilderException.class);
 
-    final DescriptorSet descriptorSet = sut.buildDescriptor(
-        Stream.of(Paths.get("foo/bar/qux.proto"))
-    );
+    sut.buildDescriptor(Stream.of(Paths.get("foo/bar/qux.proto")));
   }
 }

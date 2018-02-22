@@ -21,7 +21,7 @@ public class SemverSchemaVersionerTest {
                                    final SchemaVersion expectedVersion) throws Exception {
     final SemverSchemaVersioner sut = SemverSchemaVersioner.create();
 
-    final SchemaRegistry.DescriptorSetPair descriptorSetPair = Util.buildDescriptorSetPair(root);
+    final Util.DescriptorSetPair descriptorSetPair = Util.buildDescriptorSetPair(root);
 
     final SchemaVersion version = sut.determineVersion(
         protoPackage,

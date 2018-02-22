@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.spotify.protoman.validation.ValidationViolation;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import javax.swing.text.html.Option;
 
 public interface SchemaPublisher {
 
@@ -14,13 +15,27 @@ public interface SchemaPublisher {
   @AutoValue
   abstract class PublishResult {
 
+    public abstract Optional<String> error();
+
     public abstract ImmutableList<ValidationViolation> violations();
 
     public abstract ImmutableMap<String, SchemaVersionPair> publishedPackages();
 
     public static PublishResult create(final ImmutableList<ValidationViolation> violations,
                                        ImmutableMap<String, SchemaVersionPair> publishedPackages) {
-      return new AutoValue_SchemaPublisher_PublishResult(violations, publishedPackages);
+      return new AutoValue_SchemaPublisher_PublishResult(
+          Optional.empty(),
+          violations,
+          publishedPackages
+      );
+    }
+
+    public static PublishResult error(final String error) {
+      return new AutoValue_SchemaPublisher_PublishResult(
+          Optional.of(error),
+          ImmutableList.of(),
+          ImmutableMap.of()
+      );
     }
   }
 

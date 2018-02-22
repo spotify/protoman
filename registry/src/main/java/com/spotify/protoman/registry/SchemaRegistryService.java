@@ -2,6 +2,7 @@ package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import com.spotify.protoman.Error;
 import com.spotify.protoman.FilePosition;
 import com.spotify.protoman.PublishSchemaRequest;
 import com.spotify.protoman.PublishSchemaResponse;
@@ -40,6 +41,14 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
               ).collect(toImmutableList())
       );
 
+      result.error().ifPresent(
+          error ->
+              responseBuilder.setError(Error.newBuilder()
+                  .setMessage(error)
+                  .build()
+              )
+      );
+
       result.violations().forEach(SchemaRegistryService::validationViolationToProto);
 
       result.publishedPackages().forEach(
@@ -57,7 +66,9 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
       responseObserver.onNext(responseBuilder.build());
       responseObserver.onCompleted();
     } catch (Exception e) {
-      // TODO(staffan): Return errors in some sane way
+      // TODO(staffan): Return errors in some sane way?
+      // We encountered an unexpected error. E.g. we couldn't run protoc at all because we're out
+      // of disk.
       responseObserver.onError(e);
     }
   }

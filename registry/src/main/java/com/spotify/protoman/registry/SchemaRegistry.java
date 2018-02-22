@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.spotify.protoman.descriptor.DescriptorBuilder;
+import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.FileDescriptor;
 import com.spotify.protoman.validation.SchemaValidator;
@@ -49,67 +50,78 @@ public class SchemaRegistry implements SchemaPublisher {
   @Override
   public PublishResult publishSchemata(final ImmutableList<SchemaFile> schemaFiles) {
     try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-      final DescriptorSetPair descriptorSetPair = buildDescriptorSets(tx, schemaFiles);
+      final BuildDescriptorsResult buildDescriptorsResult = buildDescriptorSets(tx, schemaFiles);
+
+      if (buildDescriptorsResult.current().compilationError() != null) {
+        // Compilation of what's currently in the registry failed. This should not happen!
+        throw new RuntimeException("Failed to build descriptor for current schemata");
+      }
+
+      if (buildDescriptorsResult.candidate().compilationError() != null) {
+        return PublishResult.error(buildDescriptorsResult.candidate().compilationError());
+      }
+
+      final DescriptorSet currentDs = buildDescriptorsResult.current().descriptorSet();
+      final DescriptorSet candidateDs = buildDescriptorsResult.candidate().descriptorSet();
 
       // Validate changes
       final ImmutableList<ValidationViolation> violations =
-          schemaValidator.validate(descriptorSetPair.current(), descriptorSetPair.candidate());
+          schemaValidator.validate(currentDs, candidateDs);
 
       // TODO(staffan): Reject changes if there are severe violations
 
       // Store files, but only for protos that changed
-      updatedFiles(schemaFiles.stream(), descriptorSetPair.current(), descriptorSetPair.candidate())
-          .forEach(tx::storeFile);
+      updatedFiles(schemaFiles.stream(), currentDs, candidateDs).forEach(tx::storeFile);
 
       // Update package versions (only for packages that have changed)
       final ImmutableMap<String, SchemaVersionPair> publishedPackages =
-          updatePackageVersions(tx, descriptorSetPair);
+          updatePackageVersions(tx, currentDs, candidateDs);
 
       tx.commit();
 
       return PublishResult.create(violations, publishedPackages);
     } catch (Exception e) {
-      // TODO(staffan):
       throw new RuntimeException(e);
     }
   }
 
-  private DescriptorSetPair buildDescriptorSets(final SchemaStorage.Transaction tx,
-                                                final ImmutableList<SchemaFile> schemaFiles)
-      throws Exception {
-    final ImmutableSet<Path> schemaPaths =
-        schemaFiles.stream().map(SchemaFile::path).collect(toImmutableSet());
-    try (final DescriptorBuilder descriptorBuilder =
-             descriptorBuilderFactory.newDescriptorBuilder()) {
+  private BuildDescriptorsResult buildDescriptorSets(final SchemaStorage.Transaction tx,
+                                                     final ImmutableList<SchemaFile> schemaFiles)
+      throws DescriptorBuilderException {
+    try (final DescriptorBuilder descriptorBuilder = descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with all files from registry
       // Builder DescriptorSet for what is currently in the registry for the files being updated
       final ImmutableMap<Path, SchemaFile> currentSchemata =
           tx.fetchAllFiles().collect(toImmutableMap(SchemaFile::path, Function.identity()));
-      currentSchemata.values().forEach(
-          schemaFile -> descriptorBuilder.setProtoFile(schemaFile.path(), schemaFile.content())
-      );
-      final DescriptorSet currentDs = descriptorBuilder.buildDescriptor(
-          schemaPaths.stream()
+
+      for (SchemaFile file : currentSchemata.values()) {
+        descriptorBuilder.setProtoFile(file.path(), file.content());
+      }
+
+      final DescriptorBuilder.Result currentResult = descriptorBuilder.buildDescriptor(
+          schemaFiles.stream()
+              .map(SchemaFile::path)
               .filter(path -> currentSchemata.keySet().contains(path))
       );
 
       // Build DescriptorSet for the updated files
-      schemaFiles.forEach(schemaFile ->
-          descriptorBuilder.setProtoFile(schemaFile.path(), schemaFile.content())
-      );
-      final DescriptorSet candidateDs = descriptorBuilder.buildDescriptor(schemaFiles.stream()
-          .map(SchemaFile::path));
+      for (SchemaFile schemaFile : schemaFiles) {
+        descriptorBuilder.setProtoFile(schemaFile.path(), schemaFile.content());
+      }
 
-      return DescriptorSetPair.create(currentDs, candidateDs);
+      final DescriptorBuilder.Result candidateResult = descriptorBuilder.buildDescriptor(
+          schemaFiles.stream()
+              .map(SchemaFile::path)
+      );
+
+      return BuildDescriptorsResult.create(currentResult, candidateResult);
     }
   }
 
   private ImmutableMap<String, SchemaVersionPair> updatePackageVersions(
       final SchemaStorage.Transaction tx,
-      final DescriptorSetPair descriptorSetPair) {
-    final DescriptorSet currentDs = descriptorSetPair.current();
-    final DescriptorSet candidateDs = descriptorSetPair.candidate();
-
+      final DescriptorSet currentDs,
+      final DescriptorSet candidateDs) {
     // Which packages are touched by the updated files?
     final ImmutableSet<String> touchedPackages = candidateDs.fileDescriptors().stream()
         .map(FileDescriptor::protoPackage)
@@ -165,15 +177,18 @@ public class SchemaRegistry implements SchemaPublisher {
   }
 
   @AutoValue
-  static abstract class DescriptorSetPair {
+  abstract static class BuildDescriptorsResult {
 
-    abstract DescriptorSet current();
+    abstract DescriptorBuilder.Result current();
 
-    abstract DescriptorSet candidate();
+    abstract DescriptorBuilder.Result candidate();
 
-    public static DescriptorSetPair create(
-        final DescriptorSet current, final DescriptorSet candidate) {
-      return new AutoValue_SchemaRegistry_DescriptorSetPair(current, candidate);
+    static BuildDescriptorsResult create(
+        final DescriptorBuilder.Result current, final DescriptorBuilder.Result candidate) {
+      return new AutoValue_SchemaRegistry_BuildDescriptorsResult(
+          current,
+          candidate
+      );
     }
   }
 }
