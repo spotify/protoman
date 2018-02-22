@@ -10,28 +10,39 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 
 public class ProtocDescriptorBuilder implements DescriptorBuilder {
 
-  private TemporaryFileStorage fileStorage;
+  private final Path protocPath;
+  private final TemporaryFileStorage fileStorage;
 
-  private ProtocDescriptorBuilder(final TemporaryFileStorage fileStorage) {
+  private ProtocDescriptorBuilder(final Path protocPath,
+                                  final TemporaryFileStorage fileStorage) {
+    this.protocPath = protocPath;
     this.fileStorage = fileStorage;
   }
 
-  public static ProtocDescriptorBuilder create() {
+  public static ProtocDescriptorBuilder create(final Path protocPath) {
     try {
-      return new ProtocDescriptorBuilder(TemporaryFileStorage.create("descriptor-builder-"));
+      return new ProtocDescriptorBuilder(
+          protocPath,
+          TemporaryFileStorage.create("descriptor-builder-")
+      );
     } catch (IOException e) {
       // TODO(staffan):
       throw new RuntimeException(e);
     }
   }
 
-  public static Factory factory() {
-    return ProtocDescriptorBuilder::create;
+  public static Factory factory(final Path protocPath) {
+    return () -> create(protocPath);
+  }
+
+  public static FactoryBuilder factoryBuilder() {
+    return new FactoryBuilder();
   }
 
   @Override
@@ -68,7 +79,7 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
     try {
       final List<String> command = Lists.newArrayList();
 
-      command.add("protoc");
+      command.add(protocPath.toString());
       command.add("-o");
       command.add(descriptorFilePath.toAbsolutePath().toString());
       command.add("--include_source_info");
@@ -96,5 +107,19 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
   @Override
   public void close() throws Exception {
     fileStorage.close();
+  }
+
+  public static class FactoryBuilder {
+
+    private Path protocPath = Paths.get("protoc");
+
+    public FactoryBuilder protocPath(final Path protocPath) {
+      this.protocPath = protocPath;
+      return this;
+    }
+
+    public Factory build() {
+      return factory(protocPath);
+    }
   }
 }

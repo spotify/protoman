@@ -50,7 +50,7 @@ public class Main {
         schemaStorage,
         DefaultSchemaValidator.withDefaultRules(),
         SemverSchemaVersioner.create(),
-        ProtocDescriptorBuilder.factory()
+        ProtocDescriptorBuilder.factoryBuilder().build()
     );
   }
 }

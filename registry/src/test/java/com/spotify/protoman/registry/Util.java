@@ -24,7 +24,7 @@ import java.util.function.Predicate;
 public class Util {
 
   private static final DescriptorBuilder.Factory DESCRIPTOR_BUILDER_FACTORY =
-      ProtocDescriptorBuilder.factory();
+      ProtocDescriptorBuilder.factoryBuilder().build();
 
   private Util() {
     // Prevent instantiation
