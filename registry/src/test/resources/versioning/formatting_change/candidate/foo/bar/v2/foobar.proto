@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package foo.bar.v2;
+
+message Foobar {
+    int32 foo = 1;
+    int32 bar = 2;
+}

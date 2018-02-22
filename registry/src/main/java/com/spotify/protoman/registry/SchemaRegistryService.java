@@ -1,197 +1,93 @@
 package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
-import static com.google.common.collect.ImmutableMap.toImmutableMap;
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.protobuf.DescriptorProtos;
-import com.spotify.protoman.ProtoFile;
 import com.spotify.protoman.PublishResult;
 import com.spotify.protoman.PublishSchemaRequest;
 import com.spotify.protoman.PublishSchemaResponse;
 import com.spotify.protoman.SchemaRegistryGrpc;
-import com.spotify.protoman.descriptor.DescriptorSet;
-import com.spotify.protoman.descriptor.FileDescriptor;
 import com.spotify.protoman.descriptor.SourceCodeInfo;
-import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import io.grpc.stub.StreamObserver;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
-import javax.annotation.Nullable;
 
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {
 
-  private final SchemaStorage schemaStorage;
-  private final DescriptorBuilder descriptorBuilder;
-  private final SchemaValidator schemaValidator;
-  private final SchemaVersioner schemaVersioner;
+  private final SchemaPublisher schemaPublisher;
 
-  private SchemaRegistryService(final SchemaStorage schemaStorage,
-                                final DescriptorBuilder descriptorBuilder,
-                                final SchemaValidator schemaValidator,
-                                final SchemaVersioner schemaVersioner) {
-    this.schemaStorage = schemaStorage;
-    this.descriptorBuilder = descriptorBuilder;
-    this.schemaValidator = schemaValidator;
-    this.schemaVersioner = schemaVersioner;
+  private SchemaRegistryService(final SchemaPublisher schemaPublisher) {
+    this.schemaPublisher = schemaPublisher;
   }
 
-  public static SchemaRegistryService create(final SchemaStorage schemaStorage,
-                                             final DescriptorBuilder descriptorBuilder,
-                                             final SchemaValidator schemaValidator,
-                                             final SchemaVersioner schemaVersioner) {
-    return new SchemaRegistryService(
-        schemaStorage, descriptorBuilder, schemaValidator, schemaVersioner
-    );
-  }
-
-  private void storeAllFiles(final TemporaryFileStorage fileStorage) {
-    try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-      tx.fetchAllFiles()
-          .forEach(file -> {
-            try {
-              fileStorage.storeFile(file.path().toString(), file.content().getBytes());
-            } catch (IOException e) {
-              throw new RuntimeException(e);
-            }
-          });
-    }
+  public static SchemaRegistryService create(final SchemaPublisher schemaPublisher) {
+    return new SchemaRegistryService(schemaPublisher);
   }
 
   @Override
   public void publishSchema(final PublishSchemaRequest request,
                             final StreamObserver<PublishSchemaResponse> responseObserver) {
-    // Paths of all protos being touched in this request
-    final ImmutableList<Path> protoFilePaths = request.getProtoFileList().stream()
-        .map(ProtoFile::getPath)
-        .map(Paths::get)
-        .collect(toImmutableList());
-
-    try (final TemporaryFileStorage fileStorage = TemporaryFileStorage.create()) {
-      storeAllFiles(fileStorage);
-      // Build FDS for all the files touched in this request IF they currently exist
-      // in the registry
-      final DescriptorSet currentDs;
-      final ImmutableList<Path> currentPaths = protoFilePaths.stream()
-          .filter(relPath -> Files.exists(fileStorage.root().resolve(relPath)))
-          .collect(toImmutableList());
-      if (currentPaths.isEmpty()) {
-        currentDs = DescriptorSet.create(
-            DescriptorProtos.FileDescriptorSet.getDefaultInstance(), __ -> true);
-      } else {
-        final DescriptorProtos.FileDescriptorSet currentFds =
-            descriptorBuilder.buildDescriptor(fileStorage.root(), currentPaths);
-        currentDs = DescriptorSet.create(currentFds, protoFilePaths::contains);
-      }
-
-      // Write any protos touched in this request
-      for (final ProtoFile protoFile : request.getProtoFileList()) {
-        fileStorage.storeFile(protoFile.getPath(), protoFile.getContent().toByteArray());
-      }
-
-      final DescriptorProtos.FileDescriptorSet candidateFds =
-          descriptorBuilder.buildDescriptor(fileStorage.root(), protoFilePaths);
-      final DescriptorSet candidateDs = DescriptorSet.create(
-          candidateFds, protoFilePaths::contains);
-
+    try {
       final PublishSchemaResponse.Builder responseBuilder = PublishSchemaResponse.newBuilder();
 
-      final ImmutableList<ValidationViolation> violations =
-          schemaValidator.validate(currentDs, candidateDs);
-      violations.forEach(
-          violation -> {
-            final com.spotify.protoman.ValidationViolation.Builder violationBuilder =
-                com.spotify.protoman.ValidationViolation.newBuilder()
-                    .setDescription(violation.description());
+      final SchemaPublisher.PublishResult result = schemaPublisher.publishSchemata(
+          request.getProtoFileList().stream()
+              .map(protoFile -> SchemaFile.create(
+                  Paths.get(protoFile.getPath()),
+                  protoFile.getContent().toStringUtf8())
+              ).collect(toImmutableList())
+      );
 
-            if (violation.candidate() != null) {
-              final SourceCodeInfo sourceCodeInfo = violation.candidate().sourceCodeInfo().get();
-              violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
-              violationBuilder.setRow(sourceCodeInfo.start().line());
-              violationBuilder.setColumn(sourceCodeInfo.start().column());
-              violationBuilder.setReferencesOld(false);
-            } else {
-              assert violation.current() != null;
-              final SourceCodeInfo sourceCodeInfo = violation.current().sourceCodeInfo().get();
-              violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
-              violationBuilder.setRow(sourceCodeInfo.start().line());
-              violationBuilder.setColumn(sourceCodeInfo.start().column());
-              violationBuilder.setReferencesOld(true);
-            }
+      result.violations().forEach(SchemaRegistryService::validationViolationToProto);
 
-            responseBuilder.addViolation(violationBuilder.build());
+      result.publishedPackages().forEach(
+          (protoPackage, versions) -> {
+            final PublishResult.Builder builder = PublishResult.newBuilder()
+                .setPackage(protoPackage)
+                .setVersion(schemaVersionToProto(versions.version()));
+            versions.prevVersion()
+                .map(SchemaRegistryService::schemaVersionToProto)
+                .ifPresent(builder::setPrevVersion);
+            responseBuilder.addPublishResult(builder.build());
           }
       );
 
-      // Which packages are touched by the updated files?
-      final ImmutableSet<String> touchedPackages = candidateDs.fileDescriptors().stream()
-          .filter(fd -> protoFilePaths.contains(Paths.get(fd.name())))
-          .map(FileDescriptor::protoPackage)
-          .collect(toImmutableSet());
-
-      try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-        // Store files
-        request.getProtoFileList().forEach(protoFile -> {
-          tx.storeFile(
-              SchemaFile.create(
-                  Paths.get(protoFile.getPath()),
-                  protoFile.getContent().toStringUtf8()
-              )
-          );
-        });
-
-        // Update versions
-        candidateDs.fileDescriptors().stream()
-            .filter(fd -> protoFilePaths.contains(Paths.get(fd.name())))
-            .map(FileDescriptor::protoPackage)
-            .forEach(protoPackage -> {
-              final Optional<SchemaVersion> currentVersion = tx.getPackageVersion(protoPackage);
-              final SchemaVersion candidateVersion = schemaVersioner.determineVersion(
-                  protoPackage,
-                  currentVersion.orElse(null),
-                  currentDs,
-                  candidateDs
-              );
-
-              final PublishResult.Builder builder = PublishResult.newBuilder()
-                  .setPackage(protoPackage)
-                  .setVersion(
-                      com.spotify.protoman.SchemaVersion.newBuilder()
-                          .setMajor(candidateVersion.major())
-                          .setMinor(candidateVersion.minor())
-                          .setPatch(candidateVersion.patch())
-                          .build()
-                  );
-
-              currentVersion.ifPresent(v -> {
-                builder.setPrevVersion(com.spotify.protoman.SchemaVersion.newBuilder()
-                    .setMajor(v.major())
-                    .setMinor(v.minor())
-                    .setPatch(v.patch())
-                    .build());
-              });
-
-              responseBuilder.addPublishResult(builder.build());
-
-              tx.storePackageVersion(protoPackage, candidateVersion);
-            });
-
-
-        tx.commit();
-      }
-
       responseObserver.onNext(responseBuilder.build());
       responseObserver.onCompleted();
-    } catch (IOException | InterruptedException e) {
+    } catch (Exception e) {
+      // TODO(staffan): Return errors in some sane way
       responseObserver.onError(e);
     }
+  }
+
+  private static com.spotify.protoman.ValidationViolation validationViolationToProto(
+      final ValidationViolation violation) {
+    final com.spotify.protoman.ValidationViolation.Builder violationBuilder =
+        com.spotify.protoman.ValidationViolation.newBuilder()
+            .setDescription(violation.description());
+
+    if (violation.candidate() != null) {
+      final SourceCodeInfo sourceCodeInfo = violation.candidate().sourceCodeInfo().get();
+      violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
+      violationBuilder.setRow(sourceCodeInfo.start().line());
+      violationBuilder.setColumn(sourceCodeInfo.start().column());
+      violationBuilder.setReferencesOld(false);
+    } else {
+      assert violation.current() != null;
+      final SourceCodeInfo sourceCodeInfo = violation.current().sourceCodeInfo().get();
+      violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
+      violationBuilder.setRow(sourceCodeInfo.start().line());
+      violationBuilder.setColumn(sourceCodeInfo.start().column());
+      violationBuilder.setReferencesOld(true);
+    }
+
+    return violationBuilder.build();
+  }
+
+  private static com.spotify.protoman.SchemaVersion schemaVersionToProto(final SchemaVersion v) {
+    return com.spotify.protoman.SchemaVersion.newBuilder()
+        .setMajor(v.major())
+        .setMinor(v.minor())
+        .setPatch(v.patch())
+        .build();
   }
 }

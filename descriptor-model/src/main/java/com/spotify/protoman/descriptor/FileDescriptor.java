@@ -2,6 +2,8 @@ package com.spotify.protoman.descriptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.DescriptorProtos;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -98,6 +100,10 @@ public class FileDescriptor implements GenericDescriptor {
   @Override
   public String fullName() {
     return name();
+  }
+
+  public Path filePath() {
+    return Paths.get(fullName());
   }
 
   @Override
