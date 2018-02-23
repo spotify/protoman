@@ -35,9 +35,10 @@ public class GcsSchemaStorage implements SchemaStorage2 {
   private static final Logger logger = LoggerFactory.getLogger(GcsSchemaStorage.class);
 
   private static final String INDEX_BLOB_NAME = "index.pb";
-  private static final String CONTENT_BLOB_NAME_TEMPLATE = "protos/%s/%s/%s.pb";
+  private static final String CONTENT_BLOB_NAME_TEMPLATE = "protos/%s/%s/%s.proto";
   private static final HashFunction CONTENT_HASH_FUNCTION = Hashing.sha256();
   private static final int GCS_PRECONDITION_FAILED = 412;
+  public static final String CONTENT_TYPE_TEXT_PLAIN = "text/plain";
 
   private final Storage storage;
   private final String bucket;
@@ -79,7 +80,9 @@ public class GcsSchemaStorage implements SchemaStorage2 {
       public void storeFile(final SchemaFile file) {
         final String contentHash = hashContent(file.content());
         final String blobName = contentBlobName(contentHash);
-        storage.create(BlobInfo.newBuilder(bucket, blobName).build(),
+        storage.create(BlobInfo.newBuilder(bucket, blobName)
+                .setContentType(CONTENT_TYPE_TEXT_PLAIN)
+                .build(),
             file.content().getBytes(Charsets.UTF_8));
         protoIndex.updateMapping(file.path().toString(), contentHash);
         logger.info("Stored file. path={} content={}", file.path(), blobName);
