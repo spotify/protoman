@@ -14,13 +14,32 @@ public interface SchemaPublisher {
   @AutoValue
   abstract class PublishResult {
 
+    public abstract Optional<String> error();
+
     public abstract ImmutableList<ValidationViolation> violations();
 
     public abstract ImmutableMap<String, SchemaVersionPair> publishedPackages();
 
     public static PublishResult create(final ImmutableList<ValidationViolation> violations,
                                        ImmutableMap<String, SchemaVersionPair> publishedPackages) {
-      return new AutoValue_SchemaPublisher_PublishResult(violations, publishedPackages);
+      return new AutoValue_SchemaPublisher_PublishResult(
+          Optional.empty(),
+          violations,
+          publishedPackages
+      );
+    }
+
+    public static PublishResult error(final String error) {
+      return error(error, ImmutableList.of());
+    }
+
+    public static PublishResult error(final String error,
+                                      final ImmutableList<ValidationViolation> violations) {
+      return new AutoValue_SchemaPublisher_PublishResult(
+          Optional.of(error),
+          violations,
+          ImmutableMap.of()
+      );
     }
   }
 

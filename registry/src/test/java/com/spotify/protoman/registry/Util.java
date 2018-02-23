@@ -2,10 +2,12 @@ package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
 import com.spotify.protoman.descriptor.DescriptorBuilder;
+import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
 import java.io.IOException;
@@ -31,19 +33,19 @@ public class Util {
   }
 
   public static DescriptorSet buildDescriptorSet(final Path root)
-      throws IOException, URISyntaxException {
+      throws IOException, URISyntaxException, DescriptorBuilderException {
     return buildDescriptorSet(root, path -> true);
   }
 
-  public static SchemaRegistry.DescriptorSetPair buildDescriptorSetPair(final Path root)
-      throws IOException, URISyntaxException {
+  public static DescriptorSetPair buildDescriptorSetPair(final Path root)
+      throws IOException, URISyntaxException, DescriptorBuilderException {
     final DescriptorSet current = buildDescriptorSet(root.resolve("current"));
     final DescriptorSet candidate = buildDescriptorSet(root.resolve("candidate"));
-    return SchemaRegistry.DescriptorSetPair.create(current, candidate);
+    return DescriptorSetPair.create(current, candidate);
   }
 
   public static DescriptorSet buildDescriptorSet(final Path root, final Predicate<Path> filter)
-      throws IOException, URISyntaxException {
+      throws IOException, URISyntaxException, DescriptorBuilderException {
     final ClassLoader classLoader = Util.class.getClassLoader();
 
     final DescriptorBuilder descriptorBuilder = DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder();
@@ -57,10 +59,16 @@ public class Util {
       }
     }
 
-    return descriptorBuilder.buildDescriptor(
+    final DescriptorBuilder.Result result = descriptorBuilder.buildDescriptor(
         resourceFiles.stream()
             .filter(filter)
     );
+
+    if (result.compilationError() != null) {
+      throw new RuntimeException("Failed to build descriptor set: " + result.compilationError());
+    }
+
+    return result.descriptorSet();
   }
 
   private static ImmutableList<Path> listResourceFiles(final Path root)
@@ -83,5 +91,18 @@ public class Util {
         .filter(Files::isRegularFile)
         .map(path::relativize)
         .collect(toImmutableList());
+  }
+
+  @AutoValue
+  abstract static class DescriptorSetPair {
+
+    abstract DescriptorSet current();
+
+    abstract DescriptorSet candidate();
+
+    public static DescriptorSetPair create(
+        final DescriptorSet current, final DescriptorSet candidate) {
+      return new AutoValue_Util_DescriptorSetPair(current, candidate);
+    }
   }
 }

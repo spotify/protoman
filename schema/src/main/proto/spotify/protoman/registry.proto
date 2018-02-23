@@ -13,26 +13,36 @@ service SchemaRegistry {
 message PublishSchemaRequest {
     repeated ProtoFile proto_file = 1;
 }
+
 message PublishSchemaResponse {
-    repeated PublishResult publish_result = 1;
+    repeated PublishedPackage published_package = 1;
     repeated ValidationViolation violation = 2;
+    Error error = 3;
+}
+
+message Error {
+    string message = 1;
 }
 
 message ProtoFile {
     string path = 1;
-    bytes content = 2;
+    string content = 2;
 }
 
 message ValidationViolation {
     string description = 1;
-    string file_path = 2;
-    int32 row = 3;
-    int32 column = 4;
-    bool references_old = 5;
+    bool fatal = 2;
+    FilePosition current = 3;
+    FilePosition candidate = 4;
 }
 
-// TODO(staffan): Better naming
-message PublishResult {
+message FilePosition {
+    string path = 1;
+    int32 line = 2;
+    int32 column = 3;
+}
+
+message PublishedPackage {
     string package = 1;
     SchemaVersion prev_version = 2;
     SchemaVersion version = 3;

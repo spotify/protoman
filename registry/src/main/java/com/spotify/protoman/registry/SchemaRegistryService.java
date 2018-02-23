@@ -2,14 +2,18 @@ package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
-import com.spotify.protoman.PublishResult;
+import com.spotify.protoman.Error;
+import com.spotify.protoman.FilePosition;
 import com.spotify.protoman.PublishSchemaRequest;
 import com.spotify.protoman.PublishSchemaResponse;
+import com.spotify.protoman.PublishedPackage;
 import com.spotify.protoman.SchemaRegistryGrpc;
+import com.spotify.protoman.descriptor.GenericDescriptor;
 import com.spotify.protoman.descriptor.SourceCodeInfo;
 import com.spotify.protoman.validation.ValidationViolation;
 import io.grpc.stub.StreamObserver;
 import java.nio.file.Paths;
+import javax.annotation.Nullable;
 
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {
 
@@ -33,30 +37,51 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
           request.getProtoFileList().stream()
               .map(protoFile -> SchemaFile.create(
                   Paths.get(protoFile.getPath()),
-                  protoFile.getContent().toStringUtf8())
+                  protoFile.getContent())
               ).collect(toImmutableList())
       );
 
-      result.violations().forEach(SchemaRegistryService::validationViolationToProto);
+      result.error().ifPresent(
+          error ->
+              responseBuilder.setError(Error.newBuilder()
+                  .setMessage(error)
+                  .build()
+              )
+      );
+
+      result.violations().stream()
+          .map(SchemaRegistryService::validationViolationToProto)
+          .forEach(responseBuilder::addViolation);
 
       result.publishedPackages().forEach(
           (protoPackage, versions) -> {
-            final PublishResult.Builder builder = PublishResult.newBuilder()
+            final PublishedPackage.Builder builder = PublishedPackage.newBuilder()
                 .setPackage(protoPackage)
                 .setVersion(schemaVersionToProto(versions.version()));
             versions.prevVersion()
                 .map(SchemaRegistryService::schemaVersionToProto)
                 .ifPresent(builder::setPrevVersion);
-            responseBuilder.addPublishResult(builder.build());
+            responseBuilder.addPublishedPackage(builder.build());
           }
       );
 
       responseObserver.onNext(responseBuilder.build());
       responseObserver.onCompleted();
     } catch (Exception e) {
-      // TODO(staffan): Return errors in some sane way
+      // TODO(staffan): Return errors in some sane way?
+      // We encountered an unexpected error. E.g. we couldn't run protoc at all because we're out
+      // of disk.
       responseObserver.onError(e);
     }
+  }
+
+  private static com.spotify.protoman.FilePosition sourceCodeInfoToFilePositionProto(
+      final SourceCodeInfo sourceCodeInfo) {
+    return FilePosition.newBuilder()
+        .setPath(sourceCodeInfo.filePath().toString())
+        .setLine(sourceCodeInfo.start().line())
+        .setColumn(sourceCodeInfo.start().column())
+        .build();
   }
 
   private static com.spotify.protoman.ValidationViolation validationViolationToProto(
@@ -65,19 +90,18 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
         com.spotify.protoman.ValidationViolation.newBuilder()
             .setDescription(violation.description());
 
-    if (violation.candidate() != null) {
-      final SourceCodeInfo sourceCodeInfo = violation.candidate().sourceCodeInfo().get();
-      violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
-      violationBuilder.setRow(sourceCodeInfo.start().line());
-      violationBuilder.setColumn(sourceCodeInfo.start().column());
-      violationBuilder.setReferencesOld(false);
-    } else {
-      assert violation.current() != null;
-      final SourceCodeInfo sourceCodeInfo = violation.current().sourceCodeInfo().get();
-      violationBuilder.setFilePath(sourceCodeInfo.filePath().toString());
-      violationBuilder.setRow(sourceCodeInfo.start().line());
-      violationBuilder.setColumn(sourceCodeInfo.start().column());
-      violationBuilder.setReferencesOld(true);
+    @Nullable final GenericDescriptor currentDescriptor = violation.current();
+    if (currentDescriptor != null) {
+      currentDescriptor.sourceCodeInfo().ifPresent(sourceCodeInfo ->
+          violationBuilder.setCurrent(sourceCodeInfoToFilePositionProto(sourceCodeInfo))
+      );
+    }
+
+    @Nullable final GenericDescriptor candidateDescriptor = violation.candidate();
+    if (candidateDescriptor != null) {
+      candidateDescriptor.sourceCodeInfo().ifPresent(sourceCodeInfo ->
+          violationBuilder.setCandidate(sourceCodeInfoToFilePositionProto(sourceCodeInfo))
+      );
     }
 
     return violationBuilder.build();

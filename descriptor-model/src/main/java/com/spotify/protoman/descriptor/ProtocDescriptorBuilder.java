@@ -2,12 +2,13 @@ package com.spotify.protoman.descriptor;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.io.CharStreams;
 import com.google.protobuf.DescriptorProtos;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,34 +47,31 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
   }
 
   @Override
-  public DescriptorBuilder setProtoFile(final Path path, final String content) {
+  public DescriptorBuilder setProtoFile(final Path path, final String content)
+      throws DescriptorBuilderException {
     try {
       fileStorage.storeFile(path.toString(), content.getBytes());
     } catch (IOException e) {
-      // TODO(staffan):
-      throw new RuntimeException(e);
+      throw new DescriptorBuilderException(e);
     }
     return this;
   }
 
   @Override
-  public DescriptorSet buildDescriptor(final Stream<Path> paths) {
+  public Result buildDescriptor(final Stream<Path> paths) throws DescriptorBuilderException {
     final ImmutableList<Path> pathsList = paths.collect(toImmutableList());
     if (pathsList.isEmpty()) {
-      return DescriptorSet.empty();
+      return Result.create(DescriptorSet.empty());
     }
 
     try {
-      final DescriptorProtos.FileDescriptorSet fileDescriptorSet =
-          buildFileDescriptorSet(pathsList.stream());
-      return DescriptorSet.create(fileDescriptorSet, pathsList::contains);
-    } catch (IOException | InterruptedException e) {
-      // TODO(staffan):
-      throw new RuntimeException(e);
+      return buildFileDescriptorSet(pathsList);
+    } catch (InterruptedException | IOException e) {
+      throw new DescriptorBuilderException(e);
     }
   }
 
-  private DescriptorProtos.FileDescriptorSet buildFileDescriptorSet(final Stream<Path> paths)
+  private Result buildFileDescriptorSet(final ImmutableList<Path> paths)
       throws IOException, InterruptedException {
     final Path descriptorFilePath = Files.createTempFile("schema-registry-descriptor-", ".pb");
     try {
@@ -84,20 +82,25 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
       command.add(descriptorFilePath.toAbsolutePath().toString());
       command.add("--include_source_info");
       command.add("--include_imports");
+      command.add("--error_format=gcc");
 
-      paths.map(Path::toString).forEach(command::add);
+      paths.stream().map(Path::toString).forEach(command::add);
 
-      final Process process =
-          new ProcessBuilder(command).directory(fileStorage.root().toFile()).inheritIO().start();
+      final Process process = new ProcessBuilder(command)
+          .directory(fileStorage.root().toFile())
+          .start();
 
       final int exitCode = process.waitFor();
 
       if (exitCode == 0) {
         try (final InputStream is = Files.newInputStream(descriptorFilePath)) {
-          return DescriptorProtos.FileDescriptorSet.parseFrom(is);
+          final DescriptorProtos.FileDescriptorSet fileDescriptorSet =
+              DescriptorProtos.FileDescriptorSet.parseFrom(is);
+
+          return Result.create(DescriptorSet.create(fileDescriptorSet, paths::contains));
         }
       } else {
-        throw new IOException("Command had non-zero exit code: " + Joiner.on(' ').join(command));
+        return Result.error(CharStreams.toString(new InputStreamReader(process.getErrorStream())));
       }
     } finally {
       Files.deleteIfExists(descriptorFilePath);
@@ -105,8 +108,12 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
   }
 
   @Override
-  public void close() throws Exception {
-    fileStorage.close();
+  public void close() {
+    try {
+      fileStorage.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static class FactoryBuilder {
