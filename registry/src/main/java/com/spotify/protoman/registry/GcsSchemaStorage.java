@@ -30,7 +30,7 @@ import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GcsSchemaStorage implements SchemaStorage2 {
+public class GcsSchemaStorage implements SchemaStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(GcsSchemaStorage.class);
 

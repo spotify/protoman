@@ -31,9 +31,7 @@ public class Main {
 
   private static SchemaRegistry createSchemaRegistry() {
 
-    final SchemaStorage schemaStorage = new SchemaStorageAdapter(
-        new GcsSchemaStorage(BUCKET_NAME)
-    );
+    final SchemaStorage schemaStorage = new GcsSchemaStorage(BUCKET_NAME);
 
     return SchemaRegistry.create(
         schemaStorage,
