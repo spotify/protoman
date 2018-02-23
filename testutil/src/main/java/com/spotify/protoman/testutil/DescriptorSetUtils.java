@@ -38,8 +38,14 @@ public class DescriptorSetUtils {
 
   public static DescriptorSetPair buildDescriptorSetPair(final Path root)
       throws IOException, URISyntaxException, DescriptorBuilderException {
-    final DescriptorSet current = buildDescriptorSet(root.resolve("current"));
-    final DescriptorSet candidate = buildDescriptorSet(root.resolve("candidate"));
+    return buildDescriptorSetPair(root, path -> true);
+  }
+
+  public static DescriptorSetPair buildDescriptorSetPair(final Path root,
+                                                         final Predicate<Path> filter)
+      throws IOException, URISyntaxException, DescriptorBuilderException {
+    final DescriptorSet current = buildDescriptorSet(root.resolve("current"), filter);
+    final DescriptorSet candidate = buildDescriptorSet(root.resolve("candidate"), filter);
     return DescriptorSetPair.create(current, candidate);
   }
 
