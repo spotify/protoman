@@ -1,8 +1,7 @@
-package com.spotify.protoman.registry;
+package com.spotify.protoman.testutil;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
-import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharStreams;
@@ -93,16 +92,4 @@ public class Util {
         .collect(toImmutableList());
   }
 
-  @AutoValue
-  abstract static class DescriptorSetPair {
-
-    abstract DescriptorSet current();
-
-    abstract DescriptorSet candidate();
-
-    public static DescriptorSetPair create(
-        final DescriptorSet current, final DescriptorSet candidate) {
-      return new AutoValue_Util_DescriptorSetPair(current, candidate);
-    }
-  }
 }

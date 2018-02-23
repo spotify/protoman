@@ -17,6 +17,7 @@
     <module>validation</module>
     <module>schema</module>
     <module>descriptor-model</module>
+    <module>testutil</module>
   </modules>
 
   <properties>
