@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import com.spotify.protoman.testutil.DescriptorSetPair;
-import com.spotify.protoman.testutil.Util;
+import com.spotify.protoman.testutil.DescriptorSetUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import junitparams.JUnitParamsRunner;
@@ -23,7 +23,7 @@ public class SemverSchemaVersionerTest {
                                    final SchemaVersion expectedVersion) throws Exception {
     final SemverSchemaVersioner sut = SemverSchemaVersioner.create();
 
-    final DescriptorSetPair descriptorSetPair = Util.buildDescriptorSetPair(root);
+    final DescriptorSetPair descriptorSetPair = DescriptorSetUtils.buildDescriptorSetPair(root);
 
     final SchemaVersion version = sut.determineVersion(
         protoPackage,

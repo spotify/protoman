@@ -22,12 +22,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
 
-public class Util {
+public class DescriptorSetUtils {
 
   private static final DescriptorBuilder.Factory DESCRIPTOR_BUILDER_FACTORY =
       ProtocDescriptorBuilder.factoryBuilder().build();
 
-  private Util() {
+  private DescriptorSetUtils() {
     // Prevent instantiation
   }
 
@@ -45,7 +45,7 @@ public class Util {
 
   public static DescriptorSet buildDescriptorSet(final Path root, final Predicate<Path> filter)
       throws IOException, URISyntaxException, DescriptorBuilderException {
-    final ClassLoader classLoader = Util.class.getClassLoader();
+    final ClassLoader classLoader = DescriptorSetUtils.class.getClassLoader();
 
     final DescriptorBuilder descriptorBuilder = DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder();
 
@@ -72,7 +72,7 @@ public class Util {
 
   private static ImmutableList<Path> listResourceFiles(final Path root)
       throws URISyntaxException, IOException {
-    final ClassLoader classLoader = Util.class.getClassLoader();
+    final ClassLoader classLoader = DescriptorSetUtils.class.getClassLoader();
     final URL resource = classLoader.getResource(root.toString());
     if (resource == null) {
       return ImmutableList.of();
