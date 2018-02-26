@@ -1,17 +1,22 @@
 package com.spotify.protoman.validation.rules;
 
+import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
+import static com.spotify.protoman.validation.FilePositionMatcher.filePosition;
+import static com.spotify.protoman.validation.GenericDescriptorMatcher.genericDescriptor;
+import static com.spotify.protoman.validation.SourceCodeInfoMatcher.sourceCodeInfo;
+import static com.spotify.protoman.validation.ValidationViolationMatcher.validationViolation;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.collect.ImmutableList;
 import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.DescriptorSet;
+import com.spotify.protoman.descriptor.GenericDescriptor;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
-import com.spotify.protoman.descriptor.SourceCodeInfo;
 import com.spotify.protoman.validation.DefaultSchemaValidator;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
@@ -74,27 +79,20 @@ public class FieldNamingRuleTest {
 
     assertThat(
         violations,
-        hasSize(1)
-    );
-
-    assertThat(
-        violations.get(0).type(),
-        equalTo(ViolationType.STYLE_GUIDE_VIOLATION)
-    );
-
-    assertThat(
-        violations.get(0).current(),
-        is(nullValue())
-    );
-
-    assertThat(
-        violations.get(0).candidate().sourceCodeInfo().get().start(),
-        equalTo(SourceCodeInfo.FilePosition.create(3, 3))
-    );
-
-    assertThat(
-        violations.get(0).description(),
-        equalTo("field name should be lower_snake_case")
+        contains(
+            validationViolation()
+                .description(equalTo("field name should be lower_snake_case"))
+                .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
+                .current(nullValue(GenericDescriptor.class))
+                .candidate(genericDescriptor()
+                    .sourceCodeInfo(optionalWithValue(
+                        sourceCodeInfo().start(
+                            filePosition()
+                                .line(3)
+                                .column(3)
+                        )))
+                )
+        )
     );
   }
 
