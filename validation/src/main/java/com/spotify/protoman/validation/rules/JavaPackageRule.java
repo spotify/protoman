@@ -1,11 +1,12 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FileDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 
-public class JavaPackageRule implements ValidationRule {
+public class JavaPackageRule implements ComparingValidationRule {
 
   private JavaPackageRule() {
   }
@@ -15,13 +16,13 @@ public class JavaPackageRule implements ValidationRule {
   }
 
   @Override
-  public void fileAdded(final Context ctx, final FileDescriptor candidate) {
+  public void fileAdded(final ValidationContext ctx, final FileDescriptor candidate) {
     validateJavaPackageOptionSet(ctx, candidate);
   }
 
   @Override
   public void fileChanged(
-      final Context ctx, final FileDescriptor current, final FileDescriptor candidate) {
+      final ValidationContext ctx, final FileDescriptor current, final FileDescriptor candidate) {
     validateJavaPackageOptionSet(ctx, candidate);
 
     // If java_package is set in the current version and has been changed, that will break
@@ -36,7 +37,7 @@ public class JavaPackageRule implements ValidationRule {
     }
   }
 
-  private void validateJavaPackageOptionSet(final Context ctx, final FileDescriptor descriptor) {
+  private void validateJavaPackageOptionSet(final ValidationContext ctx, final FileDescriptor descriptor) {
     if (descriptor.options().hasJavaPackage()) {
       ctx.report(
           ViolationType.BEST_PRACTICE_VIOLATION,

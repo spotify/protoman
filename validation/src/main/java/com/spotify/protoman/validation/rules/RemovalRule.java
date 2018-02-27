@@ -6,10 +6,11 @@ import com.spotify.protoman.descriptor.FieldDescriptor;
 import com.spotify.protoman.descriptor.MessageDescriptor;
 import com.spotify.protoman.descriptor.MethodDescriptor;
 import com.spotify.protoman.descriptor.ServiceDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
-public class RemovalRule implements ValidationRule {
+public class RemovalRule implements ComparingValidationRule {
 
   private RemovalRule() {
   }
@@ -19,7 +20,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void messageRemoved(final Context ctx, final MessageDescriptor current) {
+  public void messageRemoved(final ValidationContext ctx, final MessageDescriptor current) {
     // Warn when removing non-deprecated messages
     if (!current.options().getDeprecated()) {
       // TODO(staffan): is this abi-incompatible?!?!
@@ -31,7 +32,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void fieldRemoved(final Context ctx,
+  public void fieldRemoved(final ValidationContext ctx,
                            final FieldDescriptor current,
                            final MessageDescriptor candidateContainingMessage) {
     if (candidateContainingMessage.isReservedNumber(current.number())
@@ -52,7 +53,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void enumRemoved(final Context ctx, final EnumDescriptor current) {
+  public void enumRemoved(final ValidationContext ctx, final EnumDescriptor current) {
     // TODO(staffan): is this abi-incompatible?!?!
     ctx.report(
         ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
@@ -61,7 +62,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void enumValueRemoved(final Context ctx, final EnumValueDescriptor current) {
+  public void enumValueRemoved(final ValidationContext ctx, final EnumValueDescriptor current) {
     ctx.report(
         ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION,
         "enum value removed"
@@ -69,7 +70,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void serviceRemoved(final Context ctx, final ServiceDescriptor current) {
+  public void serviceRemoved(final ValidationContext ctx, final ServiceDescriptor current) {
     if (!current.options().getDeprecated()) {
       // TODO(staffan): is this "wire-incompatible"?!?!
       ctx.report(
@@ -80,7 +81,7 @@ public class RemovalRule implements ValidationRule {
   }
 
   @Override
-  public void methodRemoved(final Context ctx, final MethodDescriptor current) {
+  public void methodRemoved(final ValidationContext ctx, final MethodDescriptor current) {
     // TODO(staffan): Take things like lifecycle into account here. Removing methods from a GA
     // service is a no-no but removing it from a experimental service is probably okay.
     // Would be very cool if we could get the number of users of a service and base decision off of

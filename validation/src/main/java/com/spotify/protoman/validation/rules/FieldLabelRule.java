@@ -1,13 +1,14 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FieldDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
 /**
  * Verifies that field labels are not changed in an incompatible way.
  */
-public class FieldLabelRule implements ValidationRule {
+public class FieldLabelRule implements ComparingValidationRule {
 
   private FieldLabelRule() {
   }
@@ -17,7 +18,7 @@ public class FieldLabelRule implements ValidationRule {
   }
 
   @Override
-  public void fieldChanged(final Context ctx,
+  public void fieldChanged(final ValidationContext ctx,
                            final FieldDescriptor current,
                            final FieldDescriptor candidate) {
     // If label is "required" changing it is wire-incompatible.

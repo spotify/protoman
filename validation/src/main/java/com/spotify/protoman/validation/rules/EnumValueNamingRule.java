@@ -1,13 +1,14 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.EnumValueDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
 /**
  * Enforces naming conventions are followed for fields, services, method, etc.
  */
-public class EnumValueNamingRule implements ValidationRule {
+public class EnumValueNamingRule implements ComparingValidationRule {
 
   private EnumValueNamingRule() {
   }
@@ -17,7 +18,7 @@ public class EnumValueNamingRule implements ValidationRule {
   }
 
   @Override
-  public void enumValueAdded(final Context ctx, final EnumValueDescriptor candidate) {
+  public void enumValueAdded(final ValidationContext ctx, final EnumValueDescriptor candidate) {
     if (!CaseFormatUtil.isUpperSnakeCase(candidate.name())) {
       ctx.report(
           ViolationType.STYLE_GUIDE_VIOLATION,

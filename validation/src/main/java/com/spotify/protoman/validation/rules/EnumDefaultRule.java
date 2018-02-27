@@ -3,10 +3,11 @@ package com.spotify.protoman.validation.rules;
 import com.google.common.base.CaseFormat;
 import com.spotify.protoman.descriptor.EnumDescriptor;
 import com.spotify.protoman.descriptor.EnumValueDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
-public class EnumDefaultRule implements ValidationRule {
+public class EnumDefaultRule implements ComparingValidationRule {
 
   private EnumDefaultRule() {
   }
@@ -16,7 +17,7 @@ public class EnumDefaultRule implements ValidationRule {
   }
 
   @Override
-  public void enumValueAdded(final Context ctx,
+  public void enumValueAdded(final ValidationContext ctx,
                              final EnumValueDescriptor candidate) {
     // NOTE(staffan): 'option allow_alias = true;' f's this up as implemented here, so it's
     // disabled for now. When allow_alias is enabled, there can be several values that has number
@@ -38,17 +39,17 @@ public class EnumDefaultRule implements ValidationRule {
   }
 
   @Override
-  public void enumAdded(final Context ctx, final EnumDescriptor candidate) {
+  public void enumAdded(final ValidationContext ctx, final EnumDescriptor candidate) {
     validateDefaultValue(ctx, candidate);
   }
 
   @Override
-  public void enumChanged(final Context ctx, final EnumDescriptor current,
+  public void enumChanged(final ValidationContext ctx, final EnumDescriptor current,
                           final EnumDescriptor candidate) {
     validateDefaultValue(ctx, candidate);
   }
 
-  private static void validateDefaultValue(final Context ctx, final EnumDescriptor descriptor) {
+  private static void validateDefaultValue(final ValidationContext ctx, final EnumDescriptor descriptor) {
     // If "option allow_alias = true;" is used there can be multiple values which number 0.
     // Find values with number 0 that contains UNKNOWN or UNSPECIFIED and warn if there are none.
     if (descriptor.findValuesByNumber(0)

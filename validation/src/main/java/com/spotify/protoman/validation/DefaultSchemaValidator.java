@@ -39,13 +39,13 @@ import javax.annotation.Nullable;
 
 public class DefaultSchemaValidator implements SchemaValidator {
 
-  private final ImmutableList<ValidationRule> rules;
+  private final ImmutableList<ComparingValidationRule> rules;
 
-  private DefaultSchemaValidator(final Stream<ValidationRule> ruleStream) {
+  private DefaultSchemaValidator(final Stream<ComparingValidationRule> ruleStream) {
     this.rules = ruleStream.collect(ImmutableList.toImmutableList());
   }
 
-  public static DefaultSchemaValidator create(final Stream<ValidationRule> ruleStream) {
+  public static DefaultSchemaValidator create(final Stream<ComparingValidationRule> ruleStream) {
     return new DefaultSchemaValidator(ruleStream);
   }
 
@@ -71,7 +71,7 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
   public static class Builder {
 
-    private final List<ValidationRule> rules = new ArrayList<>();
+    private final List<ComparingValidationRule> rules = new ArrayList<>();
 
     private Builder() {
     }
@@ -100,8 +100,13 @@ public class DefaultSchemaValidator implements SchemaValidator {
       return this;
     }
 
-    public Builder addRule(final ValidationRule rule) {
+    public Builder addRule(final ComparingValidationRule rule) {
       rules.add(rule);
+      return this;
+    }
+
+    public Builder addRule(final ValidationRule rule) {
+      rules.add(RuleAdapter.adapt(rule));
       return this;
     }
 
@@ -273,20 +278,20 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
   @FunctionalInterface
   private interface AdditionCallback<T> {
-    void accept(ValidationRule.Context ctx, T candidate);
+    void accept(ValidationContext ctx, T candidate);
   }
 
   @FunctionalInterface
   private interface RemovalCallback<T> {
-    void accept(ValidationRule.Context ctx, T current);
+    void accept(ValidationContext ctx, T current);
   }
 
   @FunctionalInterface
   private interface ChangeCallback<T> {
-    void accept(ValidationRule.Context ctx, T current, T candidate);
+    void accept(ValidationContext ctx, T current, T candidate);
   }
 
-  private static class ContextImpl implements ValidationRule.Context {
+  private static class ContextImpl implements ValidationContext {
 
     private final ImmutableList.Builder<ValidationViolation> violations;
     @Nullable private GenericDescriptor current;

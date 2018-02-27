@@ -2,13 +2,14 @@ package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FieldDescriptor;
 import com.spotify.protoman.descriptor.MessageDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
 /**
  * Enforces naming conventions are followed for fields, services, method, etc.
  */
-public class FieldNamingRule implements ValidationRule {
+public class FieldNamingRule implements ComparingValidationRule {
 
   private FieldNamingRule() {
   }
@@ -18,7 +19,7 @@ public class FieldNamingRule implements ValidationRule {
   }
 
   @Override
-  public void fieldAdded(final Context ctx,
+  public void fieldAdded(final ValidationContext ctx,
                          final FieldDescriptor candidate,
                          final MessageDescriptor candidateContainingMessage) {
     if (!CaseFormatUtil.isLowerSnakeCase(candidate.name())) {

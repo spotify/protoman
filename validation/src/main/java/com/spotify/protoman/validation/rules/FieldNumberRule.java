@@ -1,10 +1,11 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FieldDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
-public class FieldNumberRule implements ValidationRule {
+public class FieldNumberRule implements ComparingValidationRule {
 
   private FieldNumberRule() {
   }
@@ -14,7 +15,7 @@ public class FieldNumberRule implements ValidationRule {
   }
 
   @Override
-  public void fieldChanged(final Context ctx,
+  public void fieldChanged(final ValidationContext ctx,
                            final FieldDescriptor current,
                            final FieldDescriptor candidate) {
     // Field number must not be changed

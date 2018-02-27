@@ -3,12 +3,13 @@ package com.spotify.protoman.validation.rules;
 import com.google.protobuf.DescriptorProtos;
 import com.spotify.protoman.descriptor.MessageDescriptor;
 import com.spotify.protoman.descriptor.MethodDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 import java.util.Optional;
 
-public class MethodSignatureCompatibilityRule implements ValidationRule {
+public class MethodSignatureCompatibilityRule implements ComparingValidationRule {
 
   private final TypeCompatibilityChecker checker;
 
@@ -31,7 +32,7 @@ public class MethodSignatureCompatibilityRule implements ValidationRule {
   }
 
   @Override
-  public void methodChanged(final Context ctx,
+  public void methodChanged(final ValidationContext ctx,
                             final MethodDescriptor current,
                             final MethodDescriptor candidate) {
     // Check input type

@@ -1,11 +1,12 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.EnumValueDescriptor;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 
-public class EnumNameChangeRule implements ValidationRule {
+public class EnumNameChangeRule implements ComparingValidationRule {
 
   private EnumNameChangeRule() {
   }
@@ -15,7 +16,7 @@ public class EnumNameChangeRule implements ValidationRule {
   }
 
   @Override
-  public void enumValueChanged(final Context ctx,
+  public void enumValueChanged(final ValidationContext ctx,
                                final EnumValueDescriptor current,
                                final EnumValueDescriptor candidate) {
     if (!Objects.equals(current.name(), candidate.name())) {
