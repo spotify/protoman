@@ -38,15 +38,17 @@ public class DescriptorSetUtils {
    */
   public static DescriptorSet buildDescriptorSet(
       final String path, final String content) throws Exception {
-    final DescriptorBuilder descriptorBuilder = DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder();
-    descriptorBuilder.setProtoFile(Paths.get(path), content);
-    final DescriptorBuilder.Result result =
-        descriptorBuilder.buildDescriptor(Stream.of(Paths.get(path)));
-    if (result.compilationError() != null) {
-      throw new RuntimeException("Protobuf compilation failed: " + result.compilationError());
+    try (final DescriptorBuilder descriptorBuilder =
+             DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder()) {
+      descriptorBuilder.setProtoFile(Paths.get(path), content);
+      final DescriptorBuilder.Result result =
+          descriptorBuilder.buildDescriptor(Stream.of(Paths.get(path)));
+      if (result.compilationError() != null) {
+        throw new RuntimeException("Protobuf compilation failed: " + result.compilationError());
+      }
+      checkNotNull(result.descriptorSet());
+      return result.descriptorSet();
     }
-    checkNotNull(result.descriptorSet());
-    return result.descriptorSet();
   }
 
   public static DescriptorSet buildDescriptorSet(final Path root)
@@ -71,27 +73,28 @@ public class DescriptorSetUtils {
       throws IOException, URISyntaxException, DescriptorBuilderException {
     final ClassLoader classLoader = DescriptorSetUtils.class.getClassLoader();
 
-    final DescriptorBuilder descriptorBuilder = DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder();
-
-    final ImmutableList<Path> resourceFiles = listResourceFiles(root);
-    for (final Path path : resourceFiles) {
-      final String strPath = root.resolve(path).toString();
-      try (final InputStream is = classLoader.getResourceAsStream(strPath)) {
-        final String content = CharStreams.toString(new InputStreamReader(is));
-        descriptorBuilder.setProtoFile(path, content);
+    try(final DescriptorBuilder descriptorBuilder =
+            DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder()) {
+      final ImmutableList<Path> resourceFiles = listResourceFiles(root);
+      for (final Path path : resourceFiles) {
+        final String strPath = root.resolve(path).toString();
+        try (final InputStream is = classLoader.getResourceAsStream(strPath)) {
+          final String content = CharStreams.toString(new InputStreamReader(is));
+          descriptorBuilder.setProtoFile(path, content);
+        }
       }
+
+      final DescriptorBuilder.Result result = descriptorBuilder.buildDescriptor(
+          resourceFiles.stream()
+              .filter(filter)
+      );
+
+      if (result.compilationError() != null) {
+        throw new RuntimeException("Failed to build descriptor set: " + result.compilationError());
+      }
+
+      return result.descriptorSet();
     }
-
-    final DescriptorBuilder.Result result = descriptorBuilder.buildDescriptor(
-        resourceFiles.stream()
-            .filter(filter)
-    );
-
-    if (result.compilationError() != null) {
-      throw new RuntimeException("Failed to build descriptor set: " + result.compilationError());
-    }
-
-    return result.descriptorSet();
   }
 
   private static ImmutableList<Path> listResourceFiles(final Path root)
