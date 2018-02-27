@@ -21,7 +21,7 @@ public class ServiceNamingRule implements ValidationRule {
     if (!CaseFormatUtil.isUpperCamelCaseName(candidate.name())) {
       ctx.report(
           ViolationType.STYLE_GUIDE_VIOLATION,
-          "service names should be UpperCamelCase"
+          "service name should be UpperCamelCase"
       );
     }
   }

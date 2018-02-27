@@ -26,16 +26,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class FieldNamingRuleTest {
+public class OneofNamingRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNamingRule.create())
+      .addRule(OneofNamingRule.create())
       .build();
 
   private static final String TEMPLATE =
       "syntax = 'proto3';\n"
       + "message Derp {\n"
-      + "  int32 %s = 1;\n"
+      + "  oneof %s {\n"
+      + "    int32 one = 1;\n"
+      + "    int32 two = 2;\n"
+      + "  }\n"
       + "}";
 
   private static Object[] allowedNames() {
@@ -99,7 +102,7 @@ public class FieldNamingRuleTest {
         violations,
         contains(
             validationViolation()
-                .description(equalTo("field name should be lower_snake_case"))
+                .description(equalTo("oneof name should be lower_snake_case"))
                 .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
                 .current(nullValue(GenericDescriptor.class))
                 .candidate(genericDescriptor()

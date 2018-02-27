@@ -1,5 +1,6 @@
 package com.spotify.protoman.testutil;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.google.common.collect.ImmutableList;
@@ -21,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class DescriptorSetUtils {
 
@@ -29,6 +31,22 @@ public class DescriptorSetUtils {
 
   private DescriptorSetUtils() {
     // Prevent instantiation
+  }
+
+  /**
+   * Convenience method to build a DescriptorSet for a single proto file.
+   */
+  public static DescriptorSet buildDescriptorSet(
+      final String path, final String content) throws Exception {
+    final DescriptorBuilder descriptorBuilder = DESCRIPTOR_BUILDER_FACTORY.newDescriptorBuilder();
+    descriptorBuilder.setProtoFile(Paths.get(path), content);
+    final DescriptorBuilder.Result result =
+        descriptorBuilder.buildDescriptor(Stream.of(Paths.get(path)));
+    if (result.compilationError() != null) {
+      throw new RuntimeException("Protobuf compilation failed: " + result.compilationError());
+    }
+    checkNotNull(result.descriptorSet());
+    return result.descriptorSet();
   }
 
   public static DescriptorSet buildDescriptorSet(final Path root)

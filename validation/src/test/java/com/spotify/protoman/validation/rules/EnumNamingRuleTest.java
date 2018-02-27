@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.GenericDescriptor;
@@ -20,40 +21,42 @@ import com.spotify.protoman.validation.DefaultSchemaValidator;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import com.spotify.protoman.validation.ViolationType;
+import java.util.stream.Stream;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class FieldNamingRuleTest {
+public class EnumNamingRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNamingRule.create())
+      .addRule(EnumNamingRule.create())
       .build();
 
   private static final String TEMPLATE =
       "syntax = 'proto3';\n"
-      + "message Derp {\n"
-      + "  int32 %s = 1;\n"
+      + "enum %s {\n"
+      + "  UNKNOWN = 0;\n"
       + "}";
 
   private static Object[] allowedNames() {
     return new Object[]{
-        "lower_snake_case",
-        "lowercase",
-        "x",
+        "UpperCamelCase",
+        "XPath",
+        "X",
     };
   }
 
   private static Object[] disallowedNames() {
     return new Object[]{
         "lowerCamelCase",
-        "UpperCamelCase",
-        "UPPER_SNAKE_CASE",
+        "lower_snake_case",
         "MIXED_snake_Case",
-        "UPPERCASE",
         "Snake_Camel_Case",
+        "lowercase",
+        "UPPERCASE",
+        "UPPER_SNAKE_CASE",
     };
   }
 
@@ -99,15 +102,15 @@ public class FieldNamingRuleTest {
         violations,
         contains(
             validationViolation()
-                .description(equalTo("field name should be lower_snake_case"))
+                .description(equalTo("enum name should be UpperCamelCase"))
                 .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
                 .current(nullValue(GenericDescriptor.class))
                 .candidate(genericDescriptor()
                     .sourceCodeInfo(optionalWithValue(
                         sourceCodeInfo().start(
                             filePosition()
-                                .line(3)
-                                .column(3)
+                                .line(2)
+                                .column(1)
                         )))
                 )
         )

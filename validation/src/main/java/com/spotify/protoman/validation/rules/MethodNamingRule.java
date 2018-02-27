@@ -20,7 +20,7 @@ public class MethodNamingRule implements ValidationRule {
     if (!CaseFormatUtil.isUpperCamelCaseName(candidate.name())) {
       ctx.report(
           ViolationType.STYLE_GUIDE_VIOLATION,
-          "method names should be UpperCamelCase"
+          "method name should be UpperCamelCase"
       );
     }
   }

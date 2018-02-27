@@ -9,7 +9,9 @@ class CaseFormatUtil {
   }
 
   static boolean isUpperCamelCaseName(final String name) {
-    return Character.isUpperCase(name.charAt(0)) && !name.contains("_");
+    return Character.isUpperCase(name.charAt(0))
+           && !name.contains("_")
+           && (name.length() == 1 || !Objects.equals(name, name.toUpperCase()));
   }
 
   // For checking enum value names

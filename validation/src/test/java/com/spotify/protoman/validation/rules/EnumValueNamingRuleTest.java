@@ -26,34 +26,34 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class FieldNamingRuleTest {
+public class EnumValueNamingRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNamingRule.create())
+      .addRule(EnumValueNamingRule.create())
       .build();
 
   private static final String TEMPLATE =
       "syntax = 'proto3';\n"
-      + "message Derp {\n"
-      + "  int32 %s = 1;\n"
-      + "}";
+      + "enum AnEnum {\n"
+      + "  %s = 0;\n"
+      + "}\n";
 
   private static Object[] allowedNames() {
     return new Object[]{
-        "lower_snake_case",
-        "lowercase",
-        "x",
+        "A",
+        "UPPERCASE",
+        "UPPER_SNAKE_CASE",
     };
   }
 
   private static Object[] disallowedNames() {
     return new Object[]{
-        "lowerCamelCase",
         "UpperCamelCase",
-        "UPPER_SNAKE_CASE",
+        "lowerCamelCase",
+        "lower_snake_case",
         "MIXED_snake_Case",
-        "UPPERCASE",
         "Snake_Camel_Case",
+        "lowercase",
     };
   }
 
@@ -62,7 +62,11 @@ public class FieldNamingRuleTest {
   public void testAllowedName_new(final String name) throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + "enum EnumWithNewValue {\n"
+        + String.format("  %s = 0;\n", name)
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -99,7 +103,7 @@ public class FieldNamingRuleTest {
         violations,
         contains(
             validationViolation()
-                .description(equalTo("field name should be lower_snake_case"))
+                .description(equalTo("enum value should be UPPER_SNAKE_CASE"))
                 .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
                 .current(nullValue(GenericDescriptor.class))
                 .candidate(genericDescriptor()

@@ -26,34 +26,30 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class FieldNamingRuleTest {
+public class ServiceNamingRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNamingRule.create())
+      .addRule(ServiceNamingRule.create())
       .build();
-
-  private static final String TEMPLATE =
-      "syntax = 'proto3';\n"
-      + "message Derp {\n"
-      + "  int32 %s = 1;\n"
-      + "}";
 
   private static Object[] allowedNames() {
     return new Object[]{
-        "lower_snake_case",
-        "lowercase",
-        "x",
+        "UpperCamelCase",
+        "XPath",
+        "X",
     };
   }
 
   private static Object[] disallowedNames() {
     return new Object[]{
+        "UPPER_SNAKE_CASE",
         "lowerCamelCase",
-        "UpperCamelCase",
+        "lower_snake_case",
         "UPPER_SNAKE_CASE",
         "MIXED_snake_Case",
-        "UPPERCASE",
         "Snake_Camel_Case",
+        "lowercase",
+        "UPPERCASE",
     };
   }
 
@@ -62,7 +58,10 @@ public class FieldNamingRuleTest {
   public void testAllowedName_new(final String name) throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + String.format("service %s {\n", name)
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -75,7 +74,10 @@ public class FieldNamingRuleTest {
   @Test
   public void testAllowedName_existing(final String name) throws Exception {
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + String.format("service %s {\n", name)
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -89,7 +91,10 @@ public class FieldNamingRuleTest {
   public void testDisallowedName_new(final String name) throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + String.format("service %s {\n", name)
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -99,15 +104,15 @@ public class FieldNamingRuleTest {
         violations,
         contains(
             validationViolation()
-                .description(equalTo("field name should be lower_snake_case"))
+                .description(equalTo("service name should be UpperCamelCase"))
                 .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
                 .current(nullValue(GenericDescriptor.class))
                 .candidate(genericDescriptor()
                     .sourceCodeInfo(optionalWithValue(
                         sourceCodeInfo().start(
                             filePosition()
-                                .line(3)
-                                .column(3)
+                                .line(2)
+                                .column(1)
                         )))
                 )
         )
@@ -118,7 +123,10 @@ public class FieldNamingRuleTest {
   @Test
   public void testDisallowedName_existing(final String name) throws Exception {
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + String.format("service %s {\n", name)
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =

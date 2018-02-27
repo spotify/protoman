@@ -26,30 +26,31 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(JUnitParamsRunner.class)
-public class FieldNamingRuleTest {
+public class MethodNamingRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNamingRule.create())
+      .addRule(MethodNamingRule.create())
       .build();
 
   private static final String TEMPLATE =
       "syntax = 'proto3';\n"
-      + "message Derp {\n"
-      + "  int32 %s = 1;\n"
-      + "}";
+      + "service Derp {\n"
+      + "  rpc %s (Foo) returns (Foo) {};\n"
+      + "}\n"
+      + "message Foo {}";
 
   private static Object[] allowedNames() {
     return new Object[]{
-        "lower_snake_case",
-        "lowercase",
-        "x",
+        "UpperCamelCase",
+        "XPath",
+        "X",
     };
   }
 
   private static Object[] disallowedNames() {
     return new Object[]{
         "lowerCamelCase",
-        "UpperCamelCase",
+        "lower_snake_case",
         "UPPER_SNAKE_CASE",
         "MIXED_snake_Case",
         "UPPERCASE",
@@ -62,7 +63,12 @@ public class FieldNamingRuleTest {
   public void testAllowedName_new(final String name) throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
+        "a.proto",
+        "syntax = 'proto3';\n"
+        + "service Derp {\n"
+        + String.format("  rpc %s (Foo) returns (Foo) {};\n", name)
+        + "}\n"
+        + "message Foo {}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -99,7 +105,7 @@ public class FieldNamingRuleTest {
         violations,
         contains(
             validationViolation()
-                .description(equalTo("field name should be lower_snake_case"))
+                .description(equalTo("method name should be UpperCamelCase"))
                 .type(equalTo(ViolationType.STYLE_GUIDE_VIOLATION))
                 .current(nullValue(GenericDescriptor.class))
                 .candidate(genericDescriptor()
