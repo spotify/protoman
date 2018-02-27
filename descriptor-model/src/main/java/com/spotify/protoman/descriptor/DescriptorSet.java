@@ -53,10 +53,11 @@ public abstract class DescriptorSet {
    * same descriptor from the respective descriptor sets, or if with only one of them when a
    * descriptor is present in only one of the descriptor sets.
    *
-   * Descriptors are always matched by <b>name</b> between the descriptor sets, which might feel
-   * non-intuitive for things like fields and enum values whose uniqueness is really determined by
-   * number. The reason for matching by name is that preserving the name is important when using
-   * FieldMask.
+   * Descriptors are matched by <b>name</b> between the descriptor sets in most cases, including
+   * fields. The reason for matching fields by name is that preserving the name is important when
+   * using FieldMask.
+   *
+   * Enum values are an expected - they are matched by number.
    */
   public static void compare(final ComparingVisitor visitor,
                              final DescriptorSet a,

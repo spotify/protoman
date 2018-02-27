@@ -6,13 +6,13 @@ import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 
-public class EnumNameChangeRule implements ComparingValidationRule {
+public class EnumValueNameChangeRule implements ComparingValidationRule {
 
-  private EnumNameChangeRule() {
+  private EnumValueNameChangeRule() {
   }
 
-  public static EnumNameChangeRule create() {
-    return new EnumNameChangeRule();
+  public static EnumValueNameChangeRule create() {
+    return new EnumValueNameChangeRule();
   }
 
   @Override
@@ -25,7 +25,5 @@ public class EnumNameChangeRule implements ComparingValidationRule {
           "enum value name changed"
       );
     }
-
-    // TODO(staffan): Detect removing UNKNOWN from name for enum value 0 (as above)
   }
 }

@@ -25,16 +25,14 @@ public class FieldLabelRule implements ComparingValidationRule {
     if (current.isRequired() != candidate.isRequired()) {
       ctx.report(
           ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
-          "field changed to/from required"
+          "field label changed to/from required"
       );
-    }
-
-    // Changing between repeated and optional is wire-compatible but will affect generated
-    // source code.
-    if (current.isRepeated() != candidate.isRepeated()) {
+    } else if (current.isRepeated() != candidate.isRepeated()) {
+      // Changing between repeated and optional is wire-compatible but will affect generated
+      // source code.
       ctx.report(
           ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION,
-          "label changed"
+          "field label changed"
       );
     }
   }
