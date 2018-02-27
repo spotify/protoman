@@ -1,0 +1,10 @@
+syntax = "proto3";
+package valid;
+
+service ValidService {
+    rpc Ping (PingRequest) returns (PingResponse) {}
+}
+message PingRequest {
+}
+message PingResponse {
+}

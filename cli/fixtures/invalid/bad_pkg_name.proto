@@ -1,0 +1,10 @@
+syntax = "proto3";
+package bad_pkg_name;
+
+service ValidService {
+    rpc Ping (PingRequest) returns (PingResponse) {}
+}
+message PingRequest {
+}
+message PingResponse {
+}
