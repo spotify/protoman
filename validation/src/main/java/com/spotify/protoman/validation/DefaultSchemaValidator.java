@@ -14,7 +14,7 @@ import com.spotify.protoman.descriptor.MessageDescriptor;
 import com.spotify.protoman.descriptor.MethodDescriptor;
 import com.spotify.protoman.descriptor.OneofDescriptor;
 import com.spotify.protoman.descriptor.ServiceDescriptor;
-import com.spotify.protoman.validation.rules.EnumDefaultRule;
+import com.spotify.protoman.validation.rules.EnumDefaultValueRule;
 import com.spotify.protoman.validation.rules.EnumNameChangeRule;
 import com.spotify.protoman.validation.rules.EnumNamingRule;
 import com.spotify.protoman.validation.rules.EnumValueNamingRule;
@@ -77,7 +77,7 @@ public class DefaultSchemaValidator implements SchemaValidator {
     }
 
     public Builder addDefaultRules() {
-      addRule(EnumDefaultRule.create());
+      addRule(EnumDefaultValueRule.create());
       addRule(EnumNameChangeRule.create());
       addRule(FieldJsonNameRule.create());
       addRule(FieldLabelRule.create());
