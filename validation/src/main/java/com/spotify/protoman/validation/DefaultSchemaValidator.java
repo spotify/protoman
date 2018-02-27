@@ -23,11 +23,13 @@ import com.spotify.protoman.validation.rules.FieldLabelRule;
 import com.spotify.protoman.validation.rules.FieldNamingRule;
 import com.spotify.protoman.validation.rules.FieldNumberRule;
 import com.spotify.protoman.validation.rules.FieldTypeCompatibilityRule;
-import com.spotify.protoman.validation.rules.FileAndPackageNamingRule;
+import com.spotify.protoman.validation.rules.FilePathAndPackageMatchRule;
 import com.spotify.protoman.validation.rules.MessageNamingRule;
 import com.spotify.protoman.validation.rules.MethodNamingRule;
 import com.spotify.protoman.validation.rules.MethodSignatureCompatibilityRule;
 import com.spotify.protoman.validation.rules.OneofNamingRule;
+import com.spotify.protoman.validation.rules.PackageNamingRule;
+import com.spotify.protoman.validation.rules.PackageRequiredRule;
 import com.spotify.protoman.validation.rules.RemovalRule;
 import com.spotify.protoman.validation.rules.ServiceNamingRule;
 import java.util.ArrayList;
@@ -81,8 +83,9 @@ public class DefaultSchemaValidator implements SchemaValidator {
       addRule(FieldLabelRule.create());
       addRule(FieldNumberRule.create());
       addRule(FieldTypeCompatibilityRule.create());
-      addRule(FileAndPackageNamingRule.create());
       addRule(MethodSignatureCompatibilityRule.create());
+      addRule(RemovalRule.create());
+      // Naming rules
       addRule(MessageNamingRule.create());
       addRule(FieldNamingRule.create());
       addRule(OneofNamingRule.create());
@@ -90,7 +93,10 @@ public class DefaultSchemaValidator implements SchemaValidator {
       addRule(EnumValueNamingRule.create());
       addRule(ServiceNamingRule.create());
       addRule(MethodNamingRule.create());
-      addRule(RemovalRule.create());
+      addRule(PackageNamingRule.create());
+      // Package best-pratices
+      addRule(PackageRequiredRule.create());
+      addRule(FilePathAndPackageMatchRule.create());
       return this;
     }
 
