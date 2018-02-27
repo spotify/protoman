@@ -1,12 +1,12 @@
 package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FileDescriptor;
-import com.spotify.protoman.validation.ComparingValidationRule;
 import com.spotify.protoman.validation.ValidationContext;
+import com.spotify.protoman.validation.ValidationRule;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 
-public class PackageNamingRule implements ComparingValidationRule {
+public class PackageNamingRule implements ValidationRule {
 
   private PackageNamingRule() {
   }
@@ -16,19 +16,7 @@ public class PackageNamingRule implements ComparingValidationRule {
   }
 
   @Override
-  public void fileAdded(final ValidationContext ctx, final FileDescriptor candidate) {
-    validatePackageName(ctx, candidate);
-  }
-
-  @Override
-  public void fileChanged(final ValidationContext ctx,
-                          final FileDescriptor current,
-                          final FileDescriptor candidate) {
-    validatePackageName(ctx, candidate);
-  }
-
-  private void validatePackageName(final ValidationContext ctx,
-                                   final FileDescriptor candidate) {
+  public void validateFile(final ValidationContext ctx, final FileDescriptor candidate) {
     if (candidate.protoPackage().isEmpty()) {
       return;
     }

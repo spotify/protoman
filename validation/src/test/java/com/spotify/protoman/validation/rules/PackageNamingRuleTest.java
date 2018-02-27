@@ -1,10 +1,6 @@
 package com.spotify.protoman.validation.rules;
 
-import static com.spotify.hamcrest.optional.OptionalMatchers.emptyOptional;
-import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
-import static com.spotify.protoman.validation.FilePositionMatcher.filePosition;
 import static com.spotify.protoman.validation.GenericDescriptorMatcher.genericDescriptor;
-import static com.spotify.protoman.validation.SourceCodeInfoMatcher.sourceCodeInfo;
 import static com.spotify.protoman.validation.ValidationViolationMatcher.validationViolation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -62,7 +58,7 @@ public class PackageNamingRuleTest {
 
   @Parameters(method = "allowedNames")
   @Test
-  public void testAllowedName_new(final String name) throws Exception {
+  public void testAllowedName(final String name) throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
         "a.proto", String.format(TEMPLATE, name)
@@ -74,22 +70,9 @@ public class PackageNamingRuleTest {
     assertThat(violations, is(empty()));
   }
 
-  @Parameters(method = "allowedNames")
-  @Test
-  public void testAllowedName_existing(final String name) throws Exception {
-    final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
-    );
-
-    final ImmutableList<ValidationViolation> violations =
-        schemaValidator.validate(candidate, candidate);
-
-    assertThat(violations, is(empty()));
-  }
-
   @Parameters(method = "disallowedNames")
   @Test
-  public void testDisallowedName_new(final String name, final String expectedDescription)
+  public void testDisallowedName(final String name, final String expectedDescription)
       throws Exception {
     final DescriptorSet current = DescriptorSet.empty();
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
@@ -109,19 +92,5 @@ public class PackageNamingRuleTest {
                 .candidate(genericDescriptor())
         )
     );
-  }
-
-  @Parameters(method = "disallowedNames")
-  @Test
-  public void testDisallowedName_existing(final String name, final String expectedDescription)
-      throws Exception {
-    final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, name)
-    );
-
-    final ImmutableList<ValidationViolation> violations =
-        schemaValidator.validate(candidate, candidate);
-
-    assertThat(violations, is(empty()));
   }
 }
