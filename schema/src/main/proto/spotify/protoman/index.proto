@@ -7,15 +7,13 @@ option go_package = "registry";
 option java_multiple_files = true;
 
 message Index {
-    repeated ProtoEntry protos = 1;
+    repeated ProtoLocation proto_location = 1;
     repeated PackageVersion package_version = 2;
-    repeated Event events = 100;
 }
 
-message ProtoEntry {
+message ProtoLocation {
     string path = 1;
     string blobName = 2;
-    string package = 3;
 }
 
 message PackageVersion {
@@ -27,9 +25,4 @@ message Version {
     int32 major = 1;
     int32 minor = 2;
     int32 patch = 3;
-}
-
-message Event {
-    string message = 1;
-    int64 ts = 2;
 }

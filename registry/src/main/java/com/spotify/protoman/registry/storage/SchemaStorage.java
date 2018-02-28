@@ -1,6 +1,10 @@
-package com.spotify.protoman.registry;
+package com.spotify.protoman.registry.storage;
 
+import com.google.common.collect.ImmutableMap;
+import com.spotify.protoman.registry.SchemaFile;
+import com.spotify.protoman.registry.SchemaVersion;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -18,8 +22,8 @@ public interface SchemaStorage {
 
     Optional<SchemaVersion> getPackageVersion(long snapshotVersion, String protoPackage);
 
-    // Returns a new snapshot version if there were mutations.
-    // If there are no mutations it returns the current snapshot version?
+    ImmutableMap<String, SchemaVersion> allPackageVersions(long snapshotVersion);
+
     long commit();
 
     long getLatestSnapshotVersion();

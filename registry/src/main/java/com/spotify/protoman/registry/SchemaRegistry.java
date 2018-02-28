@@ -11,6 +11,7 @@ import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.FileDescriptor;
+import com.spotify.protoman.registry.storage.SchemaStorage;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;

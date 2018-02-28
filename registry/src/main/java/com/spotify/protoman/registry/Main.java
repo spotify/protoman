@@ -1,6 +1,10 @@
 package com.spotify.protoman.registry;
 
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
+import com.spotify.protoman.registry.storage.GcsSchemaStorage;
+import com.spotify.protoman.registry.storage.SchemaStorage;
 import com.spotify.protoman.validation.DefaultSchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -31,7 +35,9 @@ public class Main {
 
   private static SchemaRegistry createSchemaRegistry() {
 
-    final SchemaStorage schemaStorage = new GcsSchemaStorage(BUCKET_NAME);
+    final Storage gcsStorage = StorageOptions.getDefaultInstance().getService();
+
+    final SchemaStorage schemaStorage = GcsSchemaStorage.create(gcsStorage, BUCKET_NAME);
 
     return SchemaRegistry.create(
         schemaStorage,
