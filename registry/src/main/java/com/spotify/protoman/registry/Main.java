@@ -9,7 +9,6 @@ import com.spotify.protoman.validation.DefaultSchemaValidator;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import java.io.IOException;
-import java.sql.SQLException;
 
 public class Main {
 
@@ -17,7 +16,7 @@ public class Main {
 
   private static final String BUCKET_NAME = "protoman";
 
-  public static void main(final String... args) throws IOException, SQLException {
+  public static void main(final String... args) throws IOException {
     final SchemaRegistry schemaRegistry = createSchemaRegistry();
 
     final SchemaRegistryService service = SchemaRegistryService.create(schemaRegistry);
