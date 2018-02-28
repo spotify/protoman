@@ -80,11 +80,11 @@
     </dependencies>
   </dependencyManagement>
 
-  <!--<build>
+  <build>
     <finalName>${project.artifactId}</finalName>
     <plugins>
 
-      <plugin>
+      <!--plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
       </plugin>
@@ -115,13 +115,13 @@
 
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
-      </plugin>
+      </plugin-->
 
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
 
     </plugins>
-  </build>-->
+  </build>
 
 </project>
