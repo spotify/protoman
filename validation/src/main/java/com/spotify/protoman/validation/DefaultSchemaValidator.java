@@ -28,9 +28,11 @@ import com.spotify.protoman.validation.rules.FieldTypeCompatibilityRule;
 import com.spotify.protoman.validation.rules.FilePathAndPackageMatchRule;
 import com.spotify.protoman.validation.rules.MessageNamingRule;
 import com.spotify.protoman.validation.rules.MethodIdempotencyChangeRule;
+import com.spotify.protoman.validation.rules.MethodInputTypeCompatibilityRule;
 import com.spotify.protoman.validation.rules.MethodNamingRule;
+import com.spotify.protoman.validation.rules.MethodOutputTypeCompatibilityRule;
 import com.spotify.protoman.validation.rules.MethodRemovalRule;
-import com.spotify.protoman.validation.rules.MethodSignatureCompatibilityRule;
+import com.spotify.protoman.validation.rules.MethodStreamingCompatibilityRule;
 import com.spotify.protoman.validation.rules.OneofNamingRule;
 import com.spotify.protoman.validation.rules.PackageNamingRule;
 import com.spotify.protoman.validation.rules.PackageRequiredRule;
@@ -86,7 +88,9 @@ public class DefaultSchemaValidator implements SchemaValidator {
       addRule(FieldJsonNameRule.create());
       addRule(FieldLabelRule.create());
       addRule(FieldTypeCompatibilityRule.create());
-      addRule(MethodSignatureCompatibilityRule.create());
+      addRule(MethodStreamingCompatibilityRule.create());
+      addRule(MethodInputTypeCompatibilityRule.create());
+      addRule(MethodOutputTypeCompatibilityRule.create());
       addRule(MethodIdempotencyChangeRule.create());
       addRule(FieldNameChangeRule.create());
       // Naming rules
