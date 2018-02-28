@@ -16,25 +16,43 @@ import com.spotify.protoman.validation.ValidationViolation;
 import com.spotify.protoman.validation.ViolationType;
 import org.junit.Test;
 
-public class FieldNumberRuleTest {
+public class FieldNameChangeRuleTest {
 
   private final SchemaValidator schemaValidator = DefaultSchemaValidator.builder()
-      .addRule(FieldNumberRule.create())
+      .addRule(FieldNameChangeRule.create())
       .build();
 
-  private static final String TEMPLATE =
-      "syntax = 'proto3';\n"
-      + "message Derp {\n"
-      + "  int32 a_field = %d;\n"
-      + "}";
+  @Test
+  public void testFieldNameUnchanged() throws Exception {
+    final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
+        "foo/bar/a.proto",
+        "syntax = 'proto3';\n"
+        + "message Herp {\n"
+        + "  int32 derp = 1;\n"
+        + "}"
+    );
+
+    final ImmutableList<ValidationViolation> violations =
+        schemaValidator.validate(candidate, candidate);
+
+    assertThat(violations, is(empty()));
+  }
 
   @Test
-  public void testFieldNumberChanged() throws Exception {
+  public void testFieldNameChanged() throws Exception {
     final DescriptorSet current = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, 1)
+        "foo/bar/a.proto",
+        "syntax = 'proto3';\n"
+        + "message Herp {\n"
+        + "  int32 derp = 1;\n"
+        + "}"
     );
     final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, 2)
+        "foo/bar/a.proto",
+        "syntax = 'proto3';\n"
+        + "message Herp {\n"
+        + "  int32 herp_a_derp = 1;\n"
+        + "}"
     );
 
     final ImmutableList<ValidationViolation> violations =
@@ -44,24 +62,9 @@ public class FieldNumberRuleTest {
         violations,
         contains(
             validationViolation()
-                .type(equalTo(ViolationType.WIRE_INCOMPATIBILITY_VIOLATION))
-                .description(equalTo("field number changed"))
+                .type(equalTo(ViolationType.FIELD_MASK_INCOMPATIBILITY))
+                .description(equalTo("field name changed - will break usage of FieldMask"))
         )
     );
-  }
-
-  @Test
-  public void testFieldNumberNotChanged() throws Exception {
-    final DescriptorSet current = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, 1)
-    );
-    final DescriptorSet candidate = DescriptorSetUtils.buildDescriptorSet(
-        "a.proto", String.format(TEMPLATE, 1)
-    );
-
-    final ImmutableList<ValidationViolation> violations =
-        schemaValidator.validate(current, candidate);
-
-    assertThat(violations, is(empty()));
   }
 }

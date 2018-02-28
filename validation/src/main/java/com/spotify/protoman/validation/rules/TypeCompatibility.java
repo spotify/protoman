@@ -6,6 +6,7 @@ import com.spotify.protoman.descriptor.EnumValueDescriptor;
 import com.spotify.protoman.descriptor.FieldDescriptor;
 import com.spotify.protoman.descriptor.FieldType;
 import com.spotify.protoman.descriptor.MessageDescriptor;
+import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -24,26 +25,28 @@ class TypeCompatibility {
     }
 
     for (final FieldDescriptor currentField : current.fields()) {
-      final FieldDescriptor candidateField = candidate.findFieldByName(currentField.name());
+      final FieldDescriptor candidateField = candidate.findFieldByNumber(currentField.number());
 
       if (candidateField == null) {
-        // Field with the same name is not present in the type replacing the current message ->
+        // Field with the same number is not present in the type replacing the current message ->
         // consider it incompatible
         return Optional.of(TypeIncompatibility.create(
             String.format(
                 "message types %s and %s are not interchangable, field %s does exist in the new "
                 + "message type used",
-                current.name(), candidate.name(), currentField.name())
+                current.name(), candidate.name(), currentField.name()),
+            ViolationType.WIRE_INCOMPATIBILITY_VIOLATION
         ));
       }
 
-      if (currentField.number() != candidateField.number()) {
+      if (!Objects.equals(currentField.name(), candidateField.name())) {
         return Optional.of(TypeIncompatibility.create(
             String.format(
-                "message types %s and %s are not interchangable, field %s has different number in "
-                + "new message type used (current=%d, candidate=%d)",
-                current.enumTypes(), candidate.name(), currentField.name(),
-                currentField.number(), candidateField.number())
+                "message types %s and %s are not interchangable, field %s has different name in "
+                + "new message type used (current=%s, candidate=%s)",
+                current.name(), candidate.name(), currentField.name(),
+                currentField.name(), candidateField.name()),
+            ViolationType.FIELD_MASK_INCOMPATIBILITY
         ));
       }
 
@@ -60,7 +63,8 @@ class TypeCompatibility {
                 "message types %s and %s are not interchangable, field %s has different JSON "
                 + "name in new message type used (current=%s, candidate=%s)",
                 current.name(), candidate.name(), currentField.name(),
-                currentField.jsonName(), candidateField.jsonName())
+                currentField.jsonName(), candidateField.jsonName()),
+            ViolationType.JSON_ENCODING_INCOMPATIBILITY
         ));
       }
     }
@@ -77,6 +81,7 @@ class TypeCompatibility {
     for (final EnumValueDescriptor currentValue : current.values()) {
       // NOTE: We match values but number not name here! This allows for the value names to be
       // changed as long as the numbers are the same.
+      // TODO(staffan): Changing the name will change the JSON encoding, which we should catch...
       final Optional<EnumValueDescriptor> candidateValue =
           candidate.findValuesByNumber(currentValue.number()).findFirst();
 
@@ -87,7 +92,8 @@ class TypeCompatibility {
             String.format(
                 "enum types %s and %s are not interchangable, value with number %d does exist in "
                 + "the new type used",
-                current.name(), candidate.name(), currentValue.number())
+                current.name(), candidate.name(), currentValue.number()),
+            ViolationType.WIRE_INCOMPATIBILITY_VIOLATION
         ));
       }
     }
@@ -115,8 +121,8 @@ class TypeCompatibility {
 
     if (!FieldType.isWireCompatible(currentType, candidateType)) {
       return Optional.of(TypeIncompatibility.create(
-          String.format("%s: wire-incompatible field type change %s -> %s",
-              candidate.fullName(), currentType, candidateType)
+          String.format("wire-incompatible field type change %s -> %s", currentType, candidateType),
+          ViolationType.WIRE_INCOMPATIBILITY_VIOLATION
       ));
     }
 
@@ -128,8 +134,11 @@ class TypeCompatibility {
 
     abstract String description();
 
-    static TypeIncompatibility create(final String description) {
-      return new AutoValue_TypeCompatibility_TypeIncompatibility(description);
+    abstract ViolationType type();
+
+    static TypeIncompatibility create(final String description,
+                                      final ViolationType type) {
+      return new AutoValue_TypeCompatibility_TypeIncompatibility(description, type);
     }
   }
 }

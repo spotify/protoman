@@ -4,6 +4,10 @@ import java.util.Objects;
 
 class CaseFormatUtil {
 
+  private CaseFormatUtil() {
+    // Prevent instantiation
+  }
+
   static boolean isLowerSnakeCase(final String name) {
     return Objects.equals(name.toLowerCase(), name);
   }

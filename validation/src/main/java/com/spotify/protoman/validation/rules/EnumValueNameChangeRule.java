@@ -19,6 +19,7 @@ public class EnumValueNameChangeRule implements ComparingValidationRule {
   public void enumValueChanged(final ValidationContext ctx,
                                final EnumValueDescriptor current,
                                final EnumValueDescriptor candidate) {
+    // TODO(staffan): This will also change the json encoding, which we should signal
     if (!Objects.equals(current.name(), candidate.name())) {
       ctx.report(
           ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION,

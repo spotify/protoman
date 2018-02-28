@@ -15,13 +15,13 @@ import com.spotify.protoman.descriptor.MethodDescriptor;
 import com.spotify.protoman.descriptor.OneofDescriptor;
 import com.spotify.protoman.descriptor.ServiceDescriptor;
 import com.spotify.protoman.validation.rules.EnumDefaultValueRule;
-import com.spotify.protoman.validation.rules.EnumValueNameChangeRule;
 import com.spotify.protoman.validation.rules.EnumNamingRule;
+import com.spotify.protoman.validation.rules.EnumValueNameChangeRule;
 import com.spotify.protoman.validation.rules.EnumValueNamingRule;
 import com.spotify.protoman.validation.rules.FieldJsonNameRule;
 import com.spotify.protoman.validation.rules.FieldLabelRule;
+import com.spotify.protoman.validation.rules.FieldNameChangeRule;
 import com.spotify.protoman.validation.rules.FieldNamingRule;
-import com.spotify.protoman.validation.rules.FieldNumberRule;
 import com.spotify.protoman.validation.rules.FieldTypeCompatibilityRule;
 import com.spotify.protoman.validation.rules.FilePathAndPackageMatchRule;
 import com.spotify.protoman.validation.rules.MessageNamingRule;
@@ -82,11 +82,11 @@ public class DefaultSchemaValidator implements SchemaValidator {
       addRule(EnumValueNameChangeRule.create());
       addRule(FieldJsonNameRule.create());
       addRule(FieldLabelRule.create());
-      addRule(FieldNumberRule.create());
       addRule(FieldTypeCompatibilityRule.create());
       addRule(MethodSignatureCompatibilityRule.create());
       addRule(MethodIdempotencyChangeRule.create());
       addRule(RemovalRule.create());
+      addRule(FieldNameChangeRule.create());
       // Naming rules
       addRule(MessageNamingRule.create());
       addRule(FieldNamingRule.create());

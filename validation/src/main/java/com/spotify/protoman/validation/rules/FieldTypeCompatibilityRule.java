@@ -39,8 +39,8 @@ public class FieldTypeCompatibilityRule implements ComparingValidationRule {
     // Is the new and old field type wire compatible?
     if (typeIncompatibility.isPresent()) {
       ctx.report(
-          ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
-          "wire incompatible field type change: " + typeIncompatibility.get().description()
+          typeIncompatibility.get().type(),
+          typeIncompatibility.get().description()
       );
     } else {
       if (current.type() != candidate.type()) {
