@@ -20,9 +20,11 @@ public class FieldNameChangeRule implements ComparingValidationRule {
                            final FieldDescriptor current,
                            final FieldDescriptor candidate) {
     if (!Objects.equals(current.name(), candidate.name())) {
+      // TODO(staffan): Will break generated source code as well as FieldMask usage. How to
+      // signal this?
       ctx.report(
-          ViolationType.FIELD_MASK_INCOMPATIBILITY,
-          "field name changed - will break usage of FieldMask"
+          ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION,
+          "field name changed"
       );
     }
   }

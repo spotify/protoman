@@ -62,8 +62,8 @@ public class FieldNameChangeRuleTest {
         violations,
         contains(
             validationViolation()
-                .type(equalTo(ViolationType.FIELD_MASK_INCOMPATIBILITY))
-                .description(equalTo("field name changed - will break usage of FieldMask"))
+                .type(equalTo(ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION))
+                .description(equalTo("field name changed"))
         )
     );
   }

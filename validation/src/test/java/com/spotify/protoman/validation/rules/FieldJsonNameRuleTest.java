@@ -70,7 +70,7 @@ public class FieldJsonNameRuleTest {
         violations,
         contains(
             validationViolation()
-                .type(equalTo(ViolationType.WIRE_INCOMPATIBILITY_VIOLATION))
+                .type(equalTo(ViolationType.JSON_ENCODING_INCOMPATIBILITY))
                 .description(equalTo("json name changed (aField -> afield)"))
                 .current(genericDescriptor()
                     .sourceCodeInfo(optionalWithValue(sourceCodeInfo().start(filePosition()
