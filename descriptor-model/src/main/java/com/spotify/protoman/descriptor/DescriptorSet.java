@@ -114,10 +114,10 @@ public abstract class DescriptorSet {
     // the same number :(
     if ((a != null && a.options().hasAllowAlias()) || (b != null && b.options().hasAllowAlias())) {
       group(a, b, d -> d.values().stream(), EnumValueDescriptor::name)
-          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b()));
+          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b(), a, b));
     } else {
       group(a, b, d -> d.values().stream(), EnumValueDescriptor::number)
-          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b()));
+          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b(), a, b));
     }
   }
 
@@ -295,13 +295,14 @@ public abstract class DescriptorSet {
   public interface ComparingVisitor {
 
     void visit(@Nullable FieldDescriptor a, @Nullable FieldDescriptor b,
-               @Nullable MessageDescriptor bMessage, @Nullable MessageDescriptor aMessage);
+               @Nullable MessageDescriptor aMessage, @Nullable MessageDescriptor bMessage);
 
     void visit(@Nullable MessageDescriptor a, @Nullable MessageDescriptor b);
 
     void visit(@Nullable EnumDescriptor a, @Nullable EnumDescriptor b);
 
-    void visit(@Nullable EnumValueDescriptor a, @Nullable EnumValueDescriptor b);
+    void visit(@Nullable EnumValueDescriptor a, @Nullable EnumValueDescriptor b,
+               @Nullable EnumDescriptor aEnum, @Nullable EnumDescriptor bEnum);
 
     void visit(@Nullable ServiceDescriptor a, @Nullable ServiceDescriptor b);
 

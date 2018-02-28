@@ -167,8 +167,7 @@ public class DefaultSchemaValidator implements SchemaValidator {
               ctx, current, checkNotNull(candidateContainingMessage)));
         }
       } else if (current == null) {
-        rules.forEach(rule -> rule.fieldAdded(
-            ctx, candidate, checkNotNull(candidateContainingMessage)));
+        rules.forEach(rule -> rule.fieldAdded(ctx, candidate));
       } else if (!current.toProto().equals(candidate.toProto())) {
         rules.forEach(rule -> rule.fieldChanged(ctx, current, candidate));
       }
@@ -194,11 +193,21 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
     @Override
     public void visit(@Nullable final EnumValueDescriptor current,
-                      @Nullable final EnumValueDescriptor candidate) {
-      rules.forEach(rule ->
-          dispatch(current, candidate, rule::enumValueAdded,
-              rule::enumValueRemoved, rule::enumValueChanged)
-      );
+                      @Nullable final EnumValueDescriptor candidate,
+                      @Nullable final EnumDescriptor currentContainingEnum,
+                      @Nullable final EnumDescriptor candidateContainingEnum) {
+      checkArgument(current != null || candidate != null);
+      ctx.setDescriptors(current, candidate);
+      if (candidate == null) {
+        if (candidateContainingEnum != null) {
+          rules.forEach(rule -> rule.enumValueRemoved(
+              ctx, current, checkNotNull(candidateContainingEnum)));
+        }
+      } else if (current == null) {
+        rules.forEach(rule -> rule.enumValueAdded(ctx, candidate));
+      } else if (!current.toProto().equals(candidate.toProto())) {
+        rules.forEach(rule -> rule.enumValueChanged(ctx, current, candidate));
+      }
     }
 
     @Override

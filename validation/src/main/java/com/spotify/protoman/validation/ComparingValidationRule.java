@@ -32,8 +32,7 @@ public interface ComparingValidationRule {
   }
 
   default void fieldAdded(final ValidationContext ctx,
-                          final FieldDescriptor candidate,
-                          final MessageDescriptor candidateContainingMessage) {
+                          final FieldDescriptor candidate) {
   }
 
   default void fieldRemoved(final ValidationContext ctx,
@@ -64,7 +63,8 @@ public interface ComparingValidationRule {
   }
 
   default void enumValueRemoved(final ValidationContext ctx,
-                                final EnumValueDescriptor current) {
+                                final EnumValueDescriptor current,
+                                final EnumDescriptor currentContainingEnum) {
   }
 
   default void enumValueChanged(final ValidationContext ctx,

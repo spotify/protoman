@@ -66,4 +66,20 @@ public class EnumDescriptor extends DescriptorBase<DescriptorProtos.EnumDescript
   public DescriptorProtos.EnumOptions options() {
     return toProto().getOptions();
   }
+
+  public boolean isReservedNumber(final int number) {
+    for (final DescriptorProtos.EnumDescriptorProto.EnumReservedRange reservedRange :
+        toProto().getReservedRangeList()) {
+      // NOTE(staffan): EnumReservedRange's end is inclusive. End for ReservedRange (for messages)
+      // is exclusive. :(
+      if (number >= reservedRange.getStart() && number <= reservedRange.getEnd()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean isReservedName(final String name) {
+    return toProto().getReservedNameList().contains(name);
+  }
 }

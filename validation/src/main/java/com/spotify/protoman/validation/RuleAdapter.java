@@ -37,8 +37,7 @@ class RuleAdapter implements ComparingValidationRule {
   }
 
   @Override
-  public void fieldAdded(final ValidationContext ctx, final FieldDescriptor candidate,
-                         final MessageDescriptor candidateContainingMessage) {
+  public void fieldAdded(final ValidationContext ctx, final FieldDescriptor candidate) {
     adaptee.validateField(ctx, candidate);
   }
 
@@ -74,7 +73,8 @@ class RuleAdapter implements ComparingValidationRule {
   }
 
   @Override
-  public void enumValueRemoved(final ValidationContext ctx, final EnumValueDescriptor current) {
+  public void enumValueRemoved(final ValidationContext ctx, final EnumValueDescriptor current,
+                               final EnumDescriptor candidateContainingEnum) {
   }
 
   @Override
