@@ -16,23 +16,28 @@ import com.spotify.protoman.descriptor.OneofDescriptor;
 import com.spotify.protoman.descriptor.ServiceDescriptor;
 import com.spotify.protoman.validation.rules.EnumDefaultValueRule;
 import com.spotify.protoman.validation.rules.EnumNamingRule;
+import com.spotify.protoman.validation.rules.EnumRemovalRule;
 import com.spotify.protoman.validation.rules.EnumValueNameChangeRule;
 import com.spotify.protoman.validation.rules.EnumValueNamingRule;
+import com.spotify.protoman.validation.rules.EnumValueRemovalRule;
 import com.spotify.protoman.validation.rules.FieldJsonNameRule;
 import com.spotify.protoman.validation.rules.FieldLabelRule;
 import com.spotify.protoman.validation.rules.FieldNameChangeRule;
 import com.spotify.protoman.validation.rules.FieldNamingRule;
+import com.spotify.protoman.validation.rules.FieldRemovalRule;
 import com.spotify.protoman.validation.rules.FieldTypeCompatibilityRule;
 import com.spotify.protoman.validation.rules.FilePathAndPackageMatchRule;
 import com.spotify.protoman.validation.rules.MessageNamingRule;
+import com.spotify.protoman.validation.rules.MessageRemovalRule;
 import com.spotify.protoman.validation.rules.MethodIdempotencyChangeRule;
 import com.spotify.protoman.validation.rules.MethodNamingRule;
 import com.spotify.protoman.validation.rules.MethodSignatureCompatibilityRule;
 import com.spotify.protoman.validation.rules.OneofNamingRule;
 import com.spotify.protoman.validation.rules.PackageNamingRule;
 import com.spotify.protoman.validation.rules.PackageRequiredRule;
-import com.spotify.protoman.validation.rules.RemovalRule;
+import com.spotify.protoman.validation.rules.MethodRemovalRule;
 import com.spotify.protoman.validation.rules.ServiceNamingRule;
+import com.spotify.protoman.validation.rules.ServiceRemovalRule;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -85,7 +90,6 @@ public class DefaultSchemaValidator implements SchemaValidator {
       addRule(FieldTypeCompatibilityRule.create());
       addRule(MethodSignatureCompatibilityRule.create());
       addRule(MethodIdempotencyChangeRule.create());
-      addRule(RemovalRule.create());
       addRule(FieldNameChangeRule.create());
       // Naming rules
       addRule(MessageNamingRule.create());
@@ -99,6 +103,13 @@ public class DefaultSchemaValidator implements SchemaValidator {
       // Package best-pratices
       addRule(PackageRequiredRule.create());
       addRule(FilePathAndPackageMatchRule.create());
+      // Rules governing removal of types
+      addRule(MessageRemovalRule.create());
+      addRule(FieldRemovalRule.create());
+      addRule(EnumRemovalRule.create());
+      addRule(EnumValueRemovalRule.create());
+      addRule(ServiceRemovalRule.create());
+      addRule(MethodRemovalRule.create());
       return this;
     }
 
