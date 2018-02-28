@@ -17,10 +17,6 @@ public class PackageNamingRule implements ValidationRule {
 
   @Override
   public void validateFile(final ValidationContext ctx, final FileDescriptor candidate) {
-    if (candidate.protoPackage().isEmpty()) {
-      return;
-    }
-
     // Package name should be all lower-case
     if (!Objects.equals(candidate.protoPackage().toLowerCase(), candidate.protoPackage())) {
       ctx.report(
