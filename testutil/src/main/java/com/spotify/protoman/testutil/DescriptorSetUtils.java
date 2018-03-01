@@ -46,8 +46,8 @@ public class DescriptorSetUtils {
       if (result.compilationError() != null) {
         throw new RuntimeException("Protobuf compilation failed: " + result.compilationError());
       }
-      checkNotNull(result.descriptorSet());
-      return result.descriptorSet();
+      checkNotNull(result.fileDescriptorSet());
+      return DescriptorSet.create(result.fileDescriptorSet(), __ -> true);
     }
   }
 
@@ -93,7 +93,7 @@ public class DescriptorSetUtils {
         throw new RuntimeException("Failed to build descriptor set: " + result.compilationError());
       }
 
-      return result.descriptorSet();
+      return DescriptorSet.create(result.fileDescriptorSet(), filter);
     }
   }
 
