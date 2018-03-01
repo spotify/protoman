@@ -67,7 +67,23 @@ public class FieldTypeCompatibilityRuleTest {
       + "}\n"
       + "enum IncompatEnum {\n"
       + "  UNSPECIFIED_C = 0;\n"
-      + "}\n";
+      + "}\n"
+      + "message NestedType {\n"
+      + "  A a = 1;\n"
+      + "  int32 b = 2;\n"
+      + "  AnEnum c = 3;\n"
+      + "}\n"
+      + "message CompatNestedType {\n"
+      + "  SuperTypeOfA a = 1;\n"
+      + "  bool b = 2;\n"
+      + "  ACompatEnum c = 3;\n"
+      + "}\n"
+      + "message IncompatNestedType {\n"
+      + "  WireIncompatWithA a = 1;\n"
+      + "  int32 b = 2;\n"
+      + "  ACompatEnum c = 3;\n"
+      + "}\n"
+      ;
 
   @Parameters(method = "complexTypeChanges")
   @Test
@@ -258,6 +274,20 @@ public class FieldTypeCompatibilityRuleTest {
             ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
             "enum types AnEnum and IncompatEnum are not interchangable, value with number 1 does "
             + "exist in the new type used"
+        },
+        // Complex, nested field types
+        new Object[]{
+            "NestedType", "CompatNestedType",
+            ViolationType.GENERATED_SOURCE_CODE_INCOMPATIBILITY_VIOLATION,
+            "field type changed (wire-compat)"
+        },
+        new Object[]{
+            "NestedType", "IncompatNestedType",
+            ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
+            // TODO(staffan): Should give a better description here, referencing NestedType and
+            // IncompatNestedType -- not the types of the incompatible fields
+            "message types A and WireIncompatWithA are not interchangable, field a does exist in "
+            + "the new message type used"
         },
     };
   }
