@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 public class SchemaRegistry implements SchemaPublisher {
 
@@ -52,17 +53,17 @@ public class SchemaRegistry implements SchemaPublisher {
     try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
       final BuildDescriptorsResult buildDescriptorsResult = buildDescriptorSets(tx, schemaFiles);
 
-      if (buildDescriptorsResult.current().compilationError() != null) {
+      if (buildDescriptorsResult.currentCompilationError() != null) {
         // Compilation of what's currently in the registry failed. This should not happen!
         throw new RuntimeException("Failed to build descriptor for current schemata");
       }
 
-      if (buildDescriptorsResult.candidate().compilationError() != null) {
-        return PublishResult.error(buildDescriptorsResult.candidate().compilationError());
+      if (buildDescriptorsResult.candidateCompilationError() != null) {
+        return PublishResult.error(buildDescriptorsResult.candidateCompilationError());
       }
 
-      final DescriptorSet currentDs = buildDescriptorsResult.current().descriptorSet();
-      final DescriptorSet candidateDs = buildDescriptorsResult.candidate().descriptorSet();
+      final DescriptorSet currentDs = buildDescriptorsResult.current();
+      final DescriptorSet candidateDs = buildDescriptorsResult.candidate();
 
       // Validate changes
       final ImmutableList<ValidationViolation> violations =
@@ -91,7 +92,8 @@ public class SchemaRegistry implements SchemaPublisher {
   private BuildDescriptorsResult buildDescriptorSets(final SchemaStorage.Transaction tx,
                                                      final ImmutableList<SchemaFile> schemaFiles)
       throws DescriptorBuilderException {
-    try (final DescriptorBuilder descriptorBuilder = descriptorBuilderFactory.newDescriptorBuilder()) {
+    try (final DescriptorBuilder descriptorBuilder =
+             descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with all files from registry
       // Builder DescriptorSet for what is currently in the registry for the files being updated
       final ImmutableMap<Path, SchemaFile> currentSchemata =
@@ -101,11 +103,45 @@ public class SchemaRegistry implements SchemaPublisher {
         descriptorBuilder.setProtoFile(file.path(), file.content());
       }
 
+      // NOTE(staffan): As it is right now, we need compile ALL descriptors to catch breaking
+      // changes.
+      //
+      // Consider the case where the following files exists in the repository:
+      //
+      // herp/derp.proto:
+      //   package herp;
+      //   message Derp {}
+      // foo/bar.proto
+      //   package foo;
+      //   import "herp/derp.proto"
+      //   message Bar {
+      //     Derp derp = 1;
+      //   }
+      //
+      // And a publish request that changes "herp/derp.proto" to:
+      //   package herp {}
+      //   message Herpaderp {} // Derp was removed/renamed!
+      //
+      //
+      // That change will break "foo/bar.proto" -- BUT protoc will succeeded if we only run it
+      // with foo/bar.proto as the input.
+      //
+      // So, we either need to either:
+      // - Run protoc will ALL files as input, or
+      // - Run protoc will ALL files that DEPEND ON a file being changed as input, or
+      // - Track dependencies are ensured that types in use are not removed
       final DescriptorBuilder.Result currentResult = descriptorBuilder.buildDescriptor(
-          schemaFiles.stream()
-              .map(SchemaFile::path)
-              .filter(path -> currentSchemata.keySet().contains(path))
+          currentSchemata.keySet().stream()
+          //schemaFiles.stream()
+          //    .map(SchemaFile::path)
+          //    .filter(path -> currentSchemata.keySet().contains(path))
       );
+      @Nullable final DescriptorSet currentDs =
+          currentResult.fileDescriptorSet() != null ?
+          DescriptorSet.create(
+              currentResult.fileDescriptorSet(),
+              path -> currentSchemata.keySet().contains(path)
+          ) : null;
 
       // Build DescriptorSet for the updated files
       for (SchemaFile schemaFile : schemaFiles) {
@@ -113,11 +149,25 @@ public class SchemaRegistry implements SchemaPublisher {
       }
 
       final DescriptorBuilder.Result candidateResult = descriptorBuilder.buildDescriptor(
-          schemaFiles.stream()
-              .map(SchemaFile::path)
+          Stream.concat(
+              currentSchemata.keySet().stream(),
+              schemaFiles.stream().map(SchemaFile::path)
+          ).collect(toImmutableSet())
+          .stream()
+          //schemaFiles.stream()
+          //    .map(SchemaFile::path)
       );
+      @Nullable final DescriptorSet candidateDs =
+          candidateResult.fileDescriptorSet() != null ?
+          DescriptorSet.create(
+              candidateResult.fileDescriptorSet(),
+              path -> schemaFiles.stream().anyMatch(sf -> Objects.equals(sf.path(), path))
+          ) : null;
 
-      return BuildDescriptorsResult.create(currentResult, candidateResult);
+      return BuildDescriptorsResult.create(
+          currentDs, candidateDs,
+          currentResult.compilationError(), candidateResult.compilationError()
+      );
     }
   }
 
@@ -182,15 +232,24 @@ public class SchemaRegistry implements SchemaPublisher {
   @AutoValue
   abstract static class BuildDescriptorsResult {
 
-    abstract DescriptorBuilder.Result current();
+    @Nullable abstract DescriptorSet current();
 
-    abstract DescriptorBuilder.Result candidate();
+    @Nullable abstract DescriptorSet candidate();
+
+    @Nullable abstract String currentCompilationError();
+
+    @Nullable abstract String candidateCompilationError();
 
     static BuildDescriptorsResult create(
-        final DescriptorBuilder.Result current, final DescriptorBuilder.Result candidate) {
+        @Nullable final DescriptorSet current,
+        @Nullable final DescriptorSet candidate,
+        @Nullable final String currentCompilationError,
+        @Nullable final String candidateCompilationError) {
       return new AutoValue_SchemaRegistry_BuildDescriptorsResult(
           current,
-          candidate
+          candidate,
+          currentCompilationError,
+          candidateCompilationError
       );
     }
   }

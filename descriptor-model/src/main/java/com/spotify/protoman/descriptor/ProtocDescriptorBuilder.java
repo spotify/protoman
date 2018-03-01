@@ -61,7 +61,7 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
   public Result buildDescriptor(final Stream<Path> paths) throws DescriptorBuilderException {
     final ImmutableList<Path> pathsList = paths.collect(toImmutableList());
     if (pathsList.isEmpty()) {
-      return Result.create(DescriptorSet.empty());
+      return Result.create(DescriptorProtos.FileDescriptorSet.getDefaultInstance());
     }
 
     try {
@@ -96,8 +96,7 @@ public class ProtocDescriptorBuilder implements DescriptorBuilder {
         try (final InputStream is = Files.newInputStream(descriptorFilePath)) {
           final DescriptorProtos.FileDescriptorSet fileDescriptorSet =
               DescriptorProtos.FileDescriptorSet.parseFrom(is);
-
-          return Result.create(DescriptorSet.create(fileDescriptorSet, paths::contains));
+          return Result.create(fileDescriptorSet);
         }
       } else {
         return Result.error(CharStreams.toString(new InputStreamReader(process.getErrorStream())));

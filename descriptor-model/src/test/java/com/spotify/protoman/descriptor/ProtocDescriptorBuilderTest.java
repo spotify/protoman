@@ -4,6 +4,7 @@ import static com.spotify.hamcrest.optional.OptionalMatchers.optionalWithValue;
 import static com.spotify.hamcrest.pojo.IsPojo.pojo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -39,10 +40,7 @@ public class ProtocDescriptorBuilderTest {
         is(nullValue())
     );
 
-    assertThat(
-        result.descriptorSet().fileDescriptors(),
-        hasSize(2)
-    );
+    assertThat(result.fileDescriptorSet().getFileList(), hasSize(2));
   }
 
   @Test
@@ -63,20 +61,7 @@ public class ProtocDescriptorBuilderTest {
 
     final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path1));
 
-    assertThat(
-        result.descriptorSet().fileDescriptors(),
-        hasSize(1)
-    );
-
-    assertThat(
-        result.descriptorSet().findFileByPath(path1)
-            .get()
-            .findMessageByName("One")
-            .findFieldByName("two")
-            .messageType()
-            .name(),
-        equalTo("Two")
-    );
+    assertThat(result.fileDescriptorSet().getFileList(), hasSize(2));
   }
 
   @Test
@@ -96,8 +81,9 @@ public class ProtocDescriptorBuilderTest {
     );
 
     final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path));
+    final DescriptorSet ds = DescriptorSet.create(result.fileDescriptorSet(), __ -> true);
     final MessageDescriptor typeDescriptor =
-        result.descriptorSet().findFileByPath(path).get().findMessageByName("MyCoolType");
+        ds.findFileByPath(path).get().findMessageByName("MyCoolType");
     assertThat(
         typeDescriptor.sourceCodeInfo(),
         optionalWithValue(
@@ -120,10 +106,7 @@ public class ProtocDescriptorBuilderTest {
 
     final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.of(path));
 
-    assertThat(
-        result.descriptorSet().fileDescriptors(),
-        hasSize(1)
-    );
+    assertThat(result.fileDescriptorSet().getFileList(), hasSize(1));
   }
 
   @Test
@@ -135,10 +118,7 @@ public class ProtocDescriptorBuilderTest {
     sut.setProtoFile(Paths.get("foo/bar/qux.proto"), "syntax = 'proto3';");
 
     final DescriptorBuilder.Result result = sut.buildDescriptor(Stream.empty());
-    assertThat(
-        result.descriptorSet().fileDescriptors(),
-        hasSize(0)
-    );
+    assertThat(result.fileDescriptorSet().getFileList(), is(empty()));
   }
 
   @Test
