@@ -22,7 +22,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spotify/protoman/cli/publish"
+	"github.com/spotify/protoman/cli/protoman"
 	"github.com/spotify/protoman/cli/validator"
 )
 
@@ -39,6 +39,9 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(validateCmd)
 	rootCmd.AddCommand(publishCmd)
+	rootCmd.AddCommand(initCmd)
+	initCmd.PersistentFlags().StringP("root-path", "p", ".", "The root directory where your protos will be stored")
+	rootCmd.AddCommand(getCmd)
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
@@ -83,11 +86,59 @@ var publishCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := publish.Publish(args[0], cmd.Flag("server").Value.String()); err != nil {
+			if err := protoman.Publish(args[0], cmd.Flag("server").Value.String()); err != nil {
 				fmt.Printf("Error: %v\n", err)
 				os.Exit(1)
 			}
 		}
+	},
+}
+
+var initCmd = &cobra.Command{
+	Use:   "init [package name] [service name]",
+	Short: "Initialize protoman and create protocol stanza",
+	Long: `
+	Initialize protoman in the current project.
+	Example:
+		package name: spotify.protoman.v1
+		service name: registry
+	The following input example will create
+	spotify/protoman/v1/registry.proto in your current directory alongside
+	a .protoman file that tracks your dependencies.
+	`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 2 {
+			return errors.New("Missing parameters")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		err := protoman.Generate(args[0], args[1], cmd.Flag("root-path").Value.String())
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println("Success!")
+	},
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get [package name]",
+	Short: "Get package",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("Missing parameters")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+
+		err := protoman.Get(args[0])
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println("Success!")
 	},
 }
 
