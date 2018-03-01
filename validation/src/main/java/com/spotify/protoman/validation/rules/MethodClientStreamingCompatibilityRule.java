@@ -5,13 +5,13 @@ import com.spotify.protoman.validation.ComparingValidationRule;
 import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 
-public class MethodStreamingCompatibilityRule implements ComparingValidationRule {
+public class MethodClientStreamingCompatibilityRule implements ComparingValidationRule {
 
-  private MethodStreamingCompatibilityRule() {
+  private MethodClientStreamingCompatibilityRule() {
   }
 
-  public static MethodStreamingCompatibilityRule create() {
-    return new MethodStreamingCompatibilityRule();
+  public static MethodClientStreamingCompatibilityRule create() {
+    return new MethodClientStreamingCompatibilityRule();
   }
 
   @Override
@@ -22,15 +22,7 @@ public class MethodStreamingCompatibilityRule implements ComparingValidationRule
     if (current.toProto().getClientStreaming() != candidate.toProto().getClientStreaming()) {
       ctx.report(
           ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
-          "changed to/from client streaxming"
-      );
-    }
-
-    // TODO(staffan): is this wire compatible?
-    if (current.toProto().getServerStreaming() != candidate.toProto().getServerStreaming()) {
-      ctx.report(
-          ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
-          "changed to/from server streaming"
+          "changed to/from client streaming"
       );
     }
   }
