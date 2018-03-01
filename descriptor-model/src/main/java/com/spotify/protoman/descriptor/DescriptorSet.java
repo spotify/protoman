@@ -53,10 +53,9 @@ public abstract class DescriptorSet {
    * same descriptor from the respective descriptor sets, or if with only one of them when a
    * descriptor is present in only one of the descriptor sets.
    *
-   * Descriptors are always matched by <b>name</b> between the descriptor sets, which might feel
-   * non-intuitive for things like fields and enum values whose uniqueness is really determined by
-   * number. The reason for matching by name is that preserving the name is important when using
-   * FieldMask.
+   * Descriptors are matched by <b>name</b> between the descriptor sets in most cases. Enum
+   * values and fields are matched between descriptors by number (note that when FieldMask is
+   * used changing the name is a breaking change).
    */
   public static void compare(final ComparingVisitor visitor,
                              final DescriptorSet a,
@@ -82,8 +81,8 @@ public abstract class DescriptorSet {
                               @Nullable final MessageDescriptor b) {
     visitor.visit(a, b);
 
-    // Fields
-    group(a, b, d -> d.fields().stream())
+    // Fields (are grouped by number, not name)
+    group(a, b, d -> d.fields().stream(), FieldDescriptor::number)
         .forEach(grouping -> visitor.visit(grouping.a(), grouping.b(), a, b));
     // Oneofs
     group(a, b, d -> d.oneofs().stream())
@@ -115,19 +114,19 @@ public abstract class DescriptorSet {
     // the same number :(
     if ((a != null && a.options().hasAllowAlias()) || (b != null && b.options().hasAllowAlias())) {
       group(a, b, d -> d.values().stream(), EnumValueDescriptor::name)
-          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b()));
+          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b(), a, b));
     } else {
       group(a, b, d -> d.values().stream(), EnumValueDescriptor::number)
-          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b()));
+          .forEach(grouping -> visitor.visit(grouping.a(), grouping.b(), a, b));
     }
   }
 
   /**
    * Given two descriptors, extract children of a specific type and group them by their identity.
    *
-   * For example, extract all fields for a message and group them by their name. If a child present
-   * in {@code a} is missing from {@code b} {@link Grouping#a()} will be set to {@code null}, and
-   * vice versa.
+   * For example, extract all fields for a message and group them by their number. If a child
+   * present in {@code a} is missing from {@code b} {@link Grouping#a()} will be set to {@code
+   * null}, and vice versa.
    *
    * @param childMapper Function used to extract children of {@code a} and {@code b}.
    * @param keyMapper   Function used extract identifiers for children used to match which
@@ -296,13 +295,14 @@ public abstract class DescriptorSet {
   public interface ComparingVisitor {
 
     void visit(@Nullable FieldDescriptor a, @Nullable FieldDescriptor b,
-               @Nullable MessageDescriptor bMessage, @Nullable MessageDescriptor aMessage);
+               @Nullable MessageDescriptor aMessage, @Nullable MessageDescriptor bMessage);
 
     void visit(@Nullable MessageDescriptor a, @Nullable MessageDescriptor b);
 
     void visit(@Nullable EnumDescriptor a, @Nullable EnumDescriptor b);
 
-    void visit(@Nullable EnumValueDescriptor a, @Nullable EnumValueDescriptor b);
+    void visit(@Nullable EnumValueDescriptor a, @Nullable EnumValueDescriptor b,
+               @Nullable EnumDescriptor aEnum, @Nullable EnumDescriptor bEnum);
 
     void visit(@Nullable ServiceDescriptor a, @Nullable ServiceDescriptor b);
 

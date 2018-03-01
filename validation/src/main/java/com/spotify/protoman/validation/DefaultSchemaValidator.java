@@ -14,16 +14,31 @@ import com.spotify.protoman.descriptor.MessageDescriptor;
 import com.spotify.protoman.descriptor.MethodDescriptor;
 import com.spotify.protoman.descriptor.OneofDescriptor;
 import com.spotify.protoman.descriptor.ServiceDescriptor;
-import com.spotify.protoman.validation.rules.EnumDefaultRule;
-import com.spotify.protoman.validation.rules.EnumNameChangeRule;
+import com.spotify.protoman.validation.rules.EnumDefaultValueRule;
+import com.spotify.protoman.validation.rules.EnumNamingRule;
+import com.spotify.protoman.validation.rules.EnumValueNameChangeRule;
+import com.spotify.protoman.validation.rules.EnumValueNamingRule;
+import com.spotify.protoman.validation.rules.EnumValueRemovalRule;
 import com.spotify.protoman.validation.rules.FieldJsonNameRule;
 import com.spotify.protoman.validation.rules.FieldLabelRule;
-import com.spotify.protoman.validation.rules.FieldNumberRule;
+import com.spotify.protoman.validation.rules.FieldNameChangeRule;
+import com.spotify.protoman.validation.rules.FieldNamingRule;
+import com.spotify.protoman.validation.rules.FieldRemovalRule;
 import com.spotify.protoman.validation.rules.FieldTypeCompatibilityRule;
-import com.spotify.protoman.validation.rules.FileAndPackageNamingRule;
-import com.spotify.protoman.validation.rules.MethodSignatureCompatibilityRule;
-import com.spotify.protoman.validation.rules.NamingRule;
-import com.spotify.protoman.validation.rules.RemovalRule;
+import com.spotify.protoman.validation.rules.FilePathAndPackageMatchRule;
+import com.spotify.protoman.validation.rules.MessageNamingRule;
+import com.spotify.protoman.validation.rules.MethodClientStreamingCompatibilityRule;
+import com.spotify.protoman.validation.rules.MethodIdempotencyChangeRule;
+import com.spotify.protoman.validation.rules.MethodInputTypeCompatibilityRule;
+import com.spotify.protoman.validation.rules.MethodNamingRule;
+import com.spotify.protoman.validation.rules.MethodOutputTypeCompatibilityRule;
+import com.spotify.protoman.validation.rules.MethodRemovalRule;
+import com.spotify.protoman.validation.rules.MethodServerStreamingCompatibilityRule;
+import com.spotify.protoman.validation.rules.OneofNamingRule;
+import com.spotify.protoman.validation.rules.PackageNamingRule;
+import com.spotify.protoman.validation.rules.PackageRequiredRule;
+import com.spotify.protoman.validation.rules.ServiceNamingRule;
+import com.spotify.protoman.validation.rules.ServiceRemovalRule;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -31,13 +46,13 @@ import javax.annotation.Nullable;
 
 public class DefaultSchemaValidator implements SchemaValidator {
 
-  private final ImmutableList<ValidationRule> rules;
+  private final ImmutableList<ComparingValidationRule> rules;
 
-  private DefaultSchemaValidator(final Stream<ValidationRule> ruleStream) {
+  private DefaultSchemaValidator(final Stream<ComparingValidationRule> ruleStream) {
     this.rules = ruleStream.collect(ImmutableList.toImmutableList());
   }
 
-  public static DefaultSchemaValidator create(final Stream<ValidationRule> ruleStream) {
+  public static DefaultSchemaValidator create(final Stream<ComparingValidationRule> ruleStream) {
     return new DefaultSchemaValidator(ruleStream);
   }
 
@@ -63,27 +78,50 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
   public static class Builder {
 
-    private final List<ValidationRule> rules = new ArrayList<>();
+    private final List<ComparingValidationRule> rules = new ArrayList<>();
 
     private Builder() {
     }
 
     public Builder addDefaultRules() {
-      addRule(EnumDefaultRule.create());
-      addRule(EnumNameChangeRule.create());
+      addRule(EnumDefaultValueRule.create());
+      addRule(EnumValueNameChangeRule.create());
       addRule(FieldJsonNameRule.create());
       addRule(FieldLabelRule.create());
-      addRule(FieldNumberRule.create());
       addRule(FieldTypeCompatibilityRule.create());
-      addRule(FileAndPackageNamingRule.create());
-      addRule(MethodSignatureCompatibilityRule.create());
-      addRule(NamingRule.create());
-      addRule(RemovalRule.create());
+      addRule(MethodServerStreamingCompatibilityRule.create());
+      addRule(MethodClientStreamingCompatibilityRule.create());
+      addRule(MethodInputTypeCompatibilityRule.create());
+      addRule(MethodOutputTypeCompatibilityRule.create());
+      addRule(MethodIdempotencyChangeRule.create());
+      addRule(FieldNameChangeRule.create());
+      // Naming rules
+      addRule(MessageNamingRule.create());
+      addRule(FieldNamingRule.create());
+      addRule(OneofNamingRule.create());
+      addRule(EnumNamingRule.create());
+      addRule(EnumValueNamingRule.create());
+      addRule(ServiceNamingRule.create());
+      addRule(MethodNamingRule.create());
+      addRule(PackageNamingRule.create());
+      // Package best-pratices
+      addRule(PackageRequiredRule.create());
+      addRule(FilePathAndPackageMatchRule.create());
+      // Rules governing removal of types
+      addRule(FieldRemovalRule.create());
+      addRule(EnumValueRemovalRule.create());
+      addRule(ServiceRemovalRule.create());
+      addRule(MethodRemovalRule.create());
+      return this;
+    }
+
+    public Builder addRule(final ComparingValidationRule rule) {
+      rules.add(rule);
       return this;
     }
 
     public Builder addRule(final ValidationRule rule) {
-      rules.add(rule);
+      rules.add(RuleAdapter.adapt(rule));
       return this;
     }
 
@@ -135,8 +173,7 @@ public class DefaultSchemaValidator implements SchemaValidator {
               ctx, current, checkNotNull(candidateContainingMessage)));
         }
       } else if (current == null) {
-        rules.forEach(rule -> rule.fieldAdded(
-            ctx, candidate, checkNotNull(candidateContainingMessage)));
+        rules.forEach(rule -> rule.fieldAdded(ctx, candidate));
       } else if (!current.toProto().equals(candidate.toProto())) {
         rules.forEach(rule -> rule.fieldChanged(ctx, current, candidate));
       }
@@ -162,11 +199,21 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
     @Override
     public void visit(@Nullable final EnumValueDescriptor current,
-                      @Nullable final EnumValueDescriptor candidate) {
-      rules.forEach(rule ->
-          dispatch(current, candidate, rule::enumValueAdded,
-              rule::enumValueRemoved, rule::enumValueChanged)
-      );
+                      @Nullable final EnumValueDescriptor candidate,
+                      @Nullable final EnumDescriptor currentContainingEnum,
+                      @Nullable final EnumDescriptor candidateContainingEnum) {
+      checkArgument(current != null || candidate != null);
+      ctx.setDescriptors(current, candidate);
+      if (candidate == null) {
+        if (candidateContainingEnum != null) {
+          rules.forEach(rule -> rule.enumValueRemoved(
+              ctx, current, checkNotNull(candidateContainingEnum)));
+        }
+      } else if (current == null) {
+        rules.forEach(rule -> rule.enumValueAdded(ctx, candidate));
+      } else if (!current.toProto().equals(candidate.toProto())) {
+        rules.forEach(rule -> rule.enumValueChanged(ctx, current, candidate));
+      }
     }
 
     @Override
@@ -255,20 +302,20 @@ public class DefaultSchemaValidator implements SchemaValidator {
 
   @FunctionalInterface
   private interface AdditionCallback<T> {
-    void accept(ValidationRule.Context ctx, T candidate);
+    void accept(ValidationContext ctx, T candidate);
   }
 
   @FunctionalInterface
   private interface RemovalCallback<T> {
-    void accept(ValidationRule.Context ctx, T current);
+    void accept(ValidationContext ctx, T current);
   }
 
   @FunctionalInterface
   private interface ChangeCallback<T> {
-    void accept(ValidationRule.Context ctx, T current, T candidate);
+    void accept(ValidationContext ctx, T current, T candidate);
   }
 
-  private static class ContextImpl implements ValidationRule.Context {
+  private static class ContextImpl implements ValidationContext {
 
     private final ImmutableList.Builder<ValidationViolation> violations;
     @Nullable private GenericDescriptor current;

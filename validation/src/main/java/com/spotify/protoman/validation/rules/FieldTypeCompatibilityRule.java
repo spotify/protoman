@@ -2,12 +2,13 @@ package com.spotify.protoman.validation.rules;
 
 import com.spotify.protoman.descriptor.FieldDescriptor;
 import com.spotify.protoman.descriptor.FieldType;
-import com.spotify.protoman.validation.ValidationRule;
+import com.spotify.protoman.validation.ComparingValidationRule;
+import com.spotify.protoman.validation.ValidationContext;
 import com.spotify.protoman.validation.ViolationType;
 import java.util.Objects;
 import java.util.Optional;
 
-public class FieldTypeCompatibilityRule implements ValidationRule {
+public class FieldTypeCompatibilityRule implements ComparingValidationRule {
 
   private final FieldCompatibilityChecker checker;
 
@@ -30,7 +31,7 @@ public class FieldTypeCompatibilityRule implements ValidationRule {
   }
 
   @Override
-  public void fieldChanged(final Context ctx,
+  public void fieldChanged(final ValidationContext ctx,
                            final FieldDescriptor current,
                            final FieldDescriptor candidate) {
     final Optional<TypeCompatibility.TypeIncompatibility> typeIncompatibility =
@@ -38,8 +39,8 @@ public class FieldTypeCompatibilityRule implements ValidationRule {
     // Is the new and old field type wire compatible?
     if (typeIncompatibility.isPresent()) {
       ctx.report(
-          ViolationType.WIRE_INCOMPATIBILITY_VIOLATION,
-          "wire incompatible field type change: " + typeIncompatibility.get().description()
+          typeIncompatibility.get().type(),
+          typeIncompatibility.get().description()
       );
     } else {
       if (current.type() != candidate.type()) {
