@@ -21,7 +21,10 @@ public class Main {
   public static void main(final String...args) throws IOException, SQLException {
     final SchemaRegistry schemaRegistry = createSchemaRegistry();
 
-    final SchemaRegistryService service = SchemaRegistryService.create(schemaRegistry);
+    final SchemaRegistryService service = SchemaRegistryService.create(
+        schemaRegistry,
+        schemaRegistry
+    );
     final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
 
     grpcServer.start();
