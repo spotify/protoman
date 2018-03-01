@@ -24,7 +24,6 @@ import (
 
 	"github.com/alecthomas/template"
 	"github.com/pkg/errors"
-	"github.com/spotify/protoman/cli/config"
 )
 
 const protoTemplate = `syntax = "proto3";
@@ -45,14 +44,14 @@ type templateParams struct {
 }
 
 // Generate for language
-func Generate(packageName string, serviceName string, rootPath string) error {
+func Generate(packageName, serviceName, rootPath string) error {
 	if _, err := os.Stat(".protoman.yaml"); err == nil {
 		return fmt.Errorf("Protoman is already initialized in this project.\n Delete the .protoman.yaml to clear previous configuration")
 	}
 	// Convert spotify.foobar to spotify/foobar
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	path := filepath.Join(rootPath, packagePath)
-	cfg := config.Config{ConfigPath: "."}
+	cfg := config{configPath: "."}
 	err := cfg.Init(packagePath, rootPath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to initialize configuration")

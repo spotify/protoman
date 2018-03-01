@@ -18,13 +18,11 @@ package protoman
 
 import (
 	"strings"
-
-	"github.com/spotify/protoman/cli/config"
 )
 
 // Get package from protoman
 func Get(packageName string) error {
-	cfg := config.Config{ConfigPath: "."}
+	cfg := config{configPath: "."}
 	err := cfg.Read()
 	if err != nil {
 		return err

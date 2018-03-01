@@ -1,4 +1,4 @@
-package config
+package protoman
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	config := Config{ConfigPath: "."}
+	config := config{configPath: "."}
 	err := config.Init("spotify/foobar", "src/main/proto")
 	if err != nil {
 		t.Fatal(err)

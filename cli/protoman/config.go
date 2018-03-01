@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package protoman
 
 import (
 	"path/filepath"
@@ -22,27 +22,27 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config struct
-type Config struct {
-	ConfigPath string
+// config struct
+type config struct {
+	configPath string
 }
 
-func (c *Config) Read() error {
-	viper.AddConfigPath(c.ConfigPath)
+func (c *config) Read() error {
+	viper.AddConfigPath(c.configPath)
 	viper.SetConfigType("yaml")
 	viper.SetConfigName(".protoman")
 	return viper.ReadInConfig()
 }
 
 // Init new protoman configuration file
-func (c *Config) Init(packagePath string, rootPath string) error {
+func (c *config) Init(packagePath, rootPath string) error {
 	viper.Set("local", []string{packagePath})
 	viper.Set("root-path", rootPath)
-	return viper.WriteConfigAs(filepath.Join(c.ConfigPath, ".protoman.yaml"))
+	return viper.WriteConfigAs(filepath.Join(c.configPath, ".protoman.yaml"))
 }
 
 // AddPackage to .protoman.yaml
-func (c *Config) AddPackage(path string, packageType string) error {
+func (c *config) AddPackage(path, packageType string) error {
 	dependencies := viper.GetStringSlice(packageType)
 	if dependencies == nil {
 		viper.Set(packageType, []string{path})
@@ -55,10 +55,10 @@ func (c *Config) AddPackage(path string, packageType string) error {
 		}
 		viper.Set(packageType, append(dependencies, path))
 	}
-	return viper.WriteConfigAs(filepath.Join(c.ConfigPath, ".protoman.yaml"))
+	return viper.WriteConfigAs(filepath.Join(c.configPath, ".protoman.yaml"))
 }
 
 // GetPackages from configuration
-func (c *Config) GetPackages(packageType string) []string {
+func (c *config) GetPackages(packageType string) []string {
 	return viper.GetStringSlice(packageType)
 }
