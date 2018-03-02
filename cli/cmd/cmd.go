@@ -36,12 +36,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(validateCmd)
-	rootCmd.AddCommand(publishCmd)
-	rootCmd.AddCommand(initCmd)
+	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, initCmd, getCmd)
 	initCmd.PersistentFlags().StringP("root-path", "p", ".", "The root directory where your protos will be stored")
-	rootCmd.AddCommand(getCmd)
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
@@ -118,7 +114,6 @@ var initCmd = &cobra.Command{
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println("Success!")
 	},
 }
 
@@ -138,7 +133,6 @@ var getCmd = &cobra.Command{
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		fmt.Println("Success!")
 	},
 }
 
