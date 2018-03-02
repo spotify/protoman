@@ -41,6 +41,13 @@ func init() {
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
+func exitOnErr(err error) {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number of protoman",
@@ -60,10 +67,7 @@ var validateCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := validator.Validate(args[0]); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(validator.Validate(args[0]))
 		}
 	},
 }
@@ -82,10 +86,7 @@ var publishCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := protoman.Publish(args[0], cmd.Flag("server").Value.String()); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(protoman.Publish(args[0], cmd.Flag("server").Value.String()))
 		}
 	},
 }
@@ -109,11 +110,7 @@ var initCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := protoman.Generate(args[0], args[1], cmd.Flag("root-path").Value.String())
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		exitOnErr(protoman.Generate(args[0], args[1], cmd.Flag("root-path").Value.String()))
 	},
 }
 
@@ -127,19 +124,11 @@ var getCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-
-		err := protoman.Get(args[0])
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		exitOnErr(protoman.Get(args[0]))
 	},
 }
 
 // Execute CLI
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	exitOnErr(rootCmd.Execute())
 }
