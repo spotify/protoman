@@ -29,10 +29,6 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "protoman",
 	Short: "Protoman is a fantastic way of managing your protos",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("PROTOMAN PROTOMAN!")
-		fmt.Println("You probably need help, call me with -h")
-	},
 }
 
 func init() {
