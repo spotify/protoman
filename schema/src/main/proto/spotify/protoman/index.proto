@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package spotify.protoman;
+
+option java_package = "com.spotify.protoman";
+option go_package = "registry";
+option java_multiple_files = true;
+
+message Index {
+    repeated ProtoLocation proto_location = 1;
+    repeated PackageVersion package_version = 2;
+}
+
+message ProtoLocation {
+    string path = 1;
+    string blobName = 2;
+}
+
+message PackageVersion {
+    string package = 1;
+    Version version = 2;
+}
+
+message Version {
+    int32 major = 1;
+    int32 minor = 2;
+    int32 patch = 3;
+}

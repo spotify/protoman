@@ -11,6 +11,7 @@ import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.FileDescriptor;
+import com.spotify.protoman.registry.storage.SchemaStorage;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;
@@ -96,8 +97,9 @@ public class SchemaRegistry implements SchemaPublisher {
              descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with all files from registry
       // Builder DescriptorSet for what is currently in the registry for the files being updated
+      final long snapshotVersion = tx.getLatestSnapshotVersion();
       final ImmutableMap<Path, SchemaFile> currentSchemata =
-          tx.fetchAllFiles().collect(toImmutableMap(SchemaFile::path, Function.identity()));
+          tx.fetchAllFiles(snapshotVersion).collect(toImmutableMap(SchemaFile::path, Function.identity()));
 
       for (SchemaFile file : currentSchemata.values()) {
         descriptorBuilder.setProtoFile(file.path(), file.content());
@@ -183,8 +185,12 @@ public class SchemaRegistry implements SchemaPublisher {
     final Map<String, SchemaVersionPair> publishedPackages = new HashMap<>();
 
     // Update versions
+    long snapshotVersion = tx.getLatestSnapshotVersion();
     touchedPackages.forEach(protoPackage -> {
-      final Optional<SchemaVersion> currentVersion = tx.getPackageVersion(protoPackage);
+      final Optional<SchemaVersion> currentVersion = tx.getPackageVersion(
+          snapshotVersion,
+          protoPackage
+      );
       final SchemaVersion candidateVersion = schemaVersioner.determineVersion(
           protoPackage,
           currentVersion.orElse(null),
