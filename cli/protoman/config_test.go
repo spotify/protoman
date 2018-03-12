@@ -6,31 +6,34 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	config := config{configPath: "."}
-	err := config.Init("spotify/foobar", "src/main/proto")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(".protoman.yaml")
+	config := config{}
+	defer os.Remove(".protoman")
 
-	err = config.AddPackage("github.com/foobar", "3rd_party")
+	err := config.AddThirdPartyPackage("github.com/foobar")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = config.AddPackage("github.com/winning", "3rd_party")
+	err = config.AddThirdPartyPackage("github.com/winning")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if len(config.GetPackages("3rd_party")) != 2 {
+	cfg, err := config.read()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(cfg.ThirdParty) != 2 {
 		t.Error("Expected to find two third party packages")
 	}
-
-	if len(config.GetPackages("local")) != 1 {
+	err = config.AddLocalPackage("spotify.com/foobar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = config.read()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(cfg.Local) != 1 {
 		t.Error("Expected to find 1 local package")
 	}
 
-	if config.Read() != nil {
-		t.Error("failed to read config")
-	}
 }

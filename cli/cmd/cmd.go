@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spotify/protoman/cli/protoman"
@@ -32,8 +33,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, initCmd, getCmd)
-	initCmd.PersistentFlags().StringP("root-path", "p", ".", "The root directory where your protos will be stored")
+	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd)
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
@@ -87,11 +87,11 @@ var publishCmd = &cobra.Command{
 	},
 }
 
-var initCmd = &cobra.Command{
-	Use:   "init [package name] [service name]",
-	Short: "Initialize protoman and create protocol stanza",
+var genCmd = &cobra.Command{
+	Use:   "generate [package name] [service name] [root path]",
+	Short: "generate protocol stanza",
 	Long: `
-	Initialize protoman in the current project.
+	Generate protocol stanza
 	Example:
 		package name: spotify.protoman.v1
 		service name: registry
@@ -100,27 +100,33 @@ var initCmd = &cobra.Command{
 	a .protoman file that tracks your dependencies.
 	`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 2 {
+		if len(args) < 3 {
 			return errors.New("Missing parameters")
+		}
+		if strings.HasPrefix(args[2], "/") {
+			return errors.New("Root path must be relative to project")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Generate(args[0], args[1], cmd.Flag("root-path").Value.String()))
+		exitOnErr(protoman.Generate(args[0], args[1], args[2]))
 	},
 }
 
 var getCmd = &cobra.Command{
-	Use:   "get [package name]",
+	Use:   "get [package name] [root path]",
 	Short: "Get package",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
+		if len(args) < 2 {
 			return errors.New("Missing parameters")
+		}
+		if strings.HasPrefix(args[1], "/") {
+			return errors.New("Root path must be relative to project")
 		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Get(args[0]))
+		exitOnErr(protoman.Get(args[0], args[1]))
 	},
 }
 

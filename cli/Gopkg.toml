@@ -26,3 +26,7 @@
 [[constraint]]
   name = "github.com/spf13/viper"
   branch = "master"
+
+[[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "2.1.1"

@@ -17,48 +17,71 @@ limitations under the License.
 package protoman
 
 import (
-	"path/filepath"
+	"io/ioutil"
+	"os"
 
-	"github.com/spf13/viper"
+	"github.com/pkg/errors"
+	yaml "gopkg.in/yaml.v2"
 )
 
-// config struct
+// config
 type config struct {
-	configPath string
+	Local      []string `yaml:"local"`
+	ThirdParty []string `yaml:"third_party"`
 }
 
-func (c *config) Read() error {
-	viper.AddConfigPath(c.configPath)
-	viper.SetConfigType("yaml")
-	viper.SetConfigName(".protoman")
-	return viper.ReadInConfig()
-}
-
-// Init new protoman configuration file
-func (c *config) Init(packagePath, rootPath string) error {
-	viper.Set("local", []string{packagePath})
-	viper.Set("root-path", rootPath)
-	return viper.WriteConfigAs(filepath.Join(c.configPath, ".protoman.yaml"))
-}
-
-// AddPackage to .protoman.yaml
-func (c *config) AddPackage(path, packageType string) error {
-	dependencies := viper.GetStringSlice(packageType)
-	if dependencies == nil {
-		viper.Set(packageType, []string{path})
-	} else {
-		for _, pkg := range dependencies {
-			if pkg == path {
-				// package already added
-				return nil
-			}
+func (c *config) read() (*config, error) {
+	if _, err := os.Stat(".protoman"); os.IsNotExist(err) {
+		_, err := os.OpenFile(".protoman", os.O_RDONLY|os.O_CREATE, 0644)
+		if err != nil {
+			return c, errors.Wrap(err, "Failed to create .protoman config file")
 		}
-		viper.Set(packageType, append(dependencies, path))
 	}
-	return viper.WriteConfigAs(filepath.Join(c.configPath, ".protoman.yaml"))
+	data, err := ioutil.ReadFile(".protoman")
+	if err != nil {
+		return c, err
+	}
+	err = yaml.Unmarshal([]byte(data), c)
+	if err != nil {
+		return c, err
+	}
+	return c, err
 }
 
-// GetPackages from configuration
-func (c *config) GetPackages(packageType string) []string {
-	return viper.GetStringSlice(packageType)
+func (c *config) write(cfg *config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(".protoman", data, 0644)
+}
+
+// AddLocalPackage to .protoman
+func (c *config) AddLocalPackage(path string) error {
+	cfg, err := c.read()
+	if err != nil {
+		return nil
+	}
+	for _, pkg := range cfg.Local {
+		if pkg == path {
+			return nil
+		}
+	}
+	cfg.Local = append(cfg.Local, path)
+	return c.write(cfg)
+}
+
+// AddLocalPackage to .protoman
+func (c *config) AddThirdPartyPackage(path string) error {
+	cfg, err := c.read()
+	if err != nil {
+		return nil
+	}
+	for _, pkg := range cfg.ThirdParty {
+		if pkg == path {
+			return nil
+		}
+	}
+	cfg.ThirdParty = append(cfg.ThirdParty, path)
+	return c.write(cfg)
 }

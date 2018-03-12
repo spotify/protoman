@@ -10,10 +10,10 @@ func TestGenerator(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to init protoman")
 	}
-	defer os.Remove(".protoman.yaml")
+	defer os.Remove(".protoman")
 	defer os.RemoveAll("test-directory")
-	if _, err := os.Stat(".protoman.yaml"); os.IsNotExist(err) {
-		t.Error(".protoman.yaml does not exist")
+	if _, err := os.Stat(".protoman"); os.IsNotExist(err) {
+		t.Error(".protoman does not exist")
 	}
 	if _, err := os.Stat("test-directory/src/proto/spotify/protoman/registry.proto"); os.IsNotExist(err) {
 		t.Error("test-directory/src/proto/spotify/protoman/registry.proto does not exist")

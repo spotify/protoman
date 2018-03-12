@@ -45,14 +45,11 @@ type templateParams struct {
 
 // Generate for language
 func Generate(packageName, serviceName, rootPath string) error {
-	if _, err := os.Stat(".protoman.yaml"); err == nil {
-		return fmt.Errorf("Protoman is already initialized in this project.\n Delete the .protoman.yaml to clear previous configuration")
-	}
 	// Convert spotify.foobar to spotify/foobar
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	path := filepath.Join(rootPath, packagePath)
-	cfg := config{configPath: "."}
-	err := cfg.Init(packagePath, rootPath)
+	cfg := config{}
+	err := cfg.AddLocalPackage(path)
 	if err != nil {
 		return errors.Wrap(err, "Failed to initialize configuration")
 	}

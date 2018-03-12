@@ -17,17 +17,14 @@ limitations under the License.
 package protoman
 
 import (
+	"path/filepath"
 	"strings"
 )
 
 // Get package from protoman
-func Get(packageName string) error {
-	cfg := config{configPath: "."}
-	err := cfg.Read()
-	if err != nil {
-		return err
-	}
-	path := strings.Replace(packageName, ".", "/", -1)
+func Get(packageName, path string) error {
+	cfg := config{}
+	path = filepath.Join(path, strings.Replace(packageName, ".", "/", -1))
 	// TODO: add gRPC request to actually fetch the dependencies locally
-	return cfg.AddPackage(path, "3rd_party")
+	return cfg.AddThirdPartyPackage(path)
 }
