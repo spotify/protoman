@@ -30,9 +30,9 @@ type config struct {
 
 const defaultConfig = ".protoman"
 
-// AddLocalPackage to config.
-func (c *config) AddLocalPackage(path string) error {
-	cfg, err := c.read()
+// addLocalPackage to config.
+func addLocalPackage(path string) error {
+	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
@@ -44,12 +44,12 @@ func (c *config) AddLocalPackage(path string) error {
 	}
 
 	cfg.Local = append(cfg.Local, path)
-	return c.write(cfg)
+	return writeConfig(cfg)
 }
 
-// AddThirdPartyPackage to config.
-func (c *config) AddThirdPartyPackage(path string) error {
-	cfg, err := c.read()
+// addThirdPartyPackage to config.
+func addThirdPartyPackage(path string) error {
+	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (c *config) AddThirdPartyPackage(path string) error {
 	}
 
 	cfg.ThirdParty = append(cfg.ThirdParty, path)
-	return c.write(cfg)
+	return writeConfig(cfg)
 }
 
 func createOnNotExist(err error) error {
@@ -76,21 +76,23 @@ func createOnNotExist(err error) error {
 	return err
 }
 
-func (c *config) read() (*config, error) {
+func readConfig() (*config, error) {
+	var c config
+
 	data, err := ioutil.ReadFile(defaultConfig)
 	if err = createOnNotExist(err); err != nil {
-		return c, err
+		return &c, err
 	}
 
-	err = yaml.Unmarshal([]byte(data), c)
+	err = yaml.Unmarshal([]byte(data), &c)
 	if err != nil {
-		return c, err
+		return &c, err
 	}
 
-	return c, err
+	return &c, err
 }
 
-func (c *config) write(cfg *config) error {
+func writeConfig(cfg *config) error {
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err

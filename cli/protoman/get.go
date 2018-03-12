@@ -26,12 +26,11 @@ import (
 
 // Get package from protoman
 func Get(packageName, path string) error {
-	cfg := config{}
 	path = filepath.Join(path, strings.Replace(packageName, ".", "/", -1))
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
 		return errors.Wrap(err, "failed to create package path")
 	}
 	// TODO: add gRPC request to actually fetch the dependencies locally
-	return cfg.AddThirdPartyPackage(path)
+	return addThirdPartyPackage(path)
 }

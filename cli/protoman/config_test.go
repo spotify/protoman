@@ -6,29 +6,28 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	config := config{}
 	defer os.Remove(".protoman")
 
-	err := config.AddThirdPartyPackage("github.com/foobar")
+	err := addThirdPartyPackage("github.com/foobar")
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = config.AddThirdPartyPackage("github.com/winning")
+	err = addThirdPartyPackage("github.com/winning")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.read()
+	cfg, err := readConfig()
 	if err != nil {
 		t.Error(err)
 	}
 	if len(cfg.ThirdParty) != 2 {
 		t.Error("Expected to find two third party packages")
 	}
-	err = config.AddLocalPackage("spotify.com/foobar")
+	err = addLocalPackage("spotify.com/foobar")
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err = config.read()
+	cfg, err = readConfig()
 	if err != nil {
 		t.Error(err)
 	}

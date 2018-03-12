@@ -48,13 +48,11 @@ func Generate(packageName, serviceName, rootPath string) error {
 	// Convert spotify.foobar to spotify/foobar
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	path := filepath.Join(rootPath, packagePath)
-	cfg := config{}
-	err := cfg.AddLocalPackage(path)
-	if err != nil {
+	if err := addLocalPackage(path); err != nil {
 		return errors.Wrap(err, "failed to add package")
 	}
-	err = os.MkdirAll(path, 0755)
-	if err != nil {
+
+	if err := os.MkdirAll(path, 0755); err != nil {
 		return errors.Wrap(err, "failed to create package path")
 	}
 	t := template.Must(template.New("proto").
@@ -64,8 +62,7 @@ func Generate(packageName, serviceName, rootPath string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create proto file")
 	}
-	err = t.Execute(f, templateParams{ServiceName: serviceName, PackageName: packageName})
-	if err != nil {
+	if t.Execute(f, templateParams{ServiceName: serviceName, PackageName: packageName}) != nil {
 		return err
 	}
 
