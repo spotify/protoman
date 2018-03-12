@@ -2,11 +2,11 @@
 
 # Usage
 
-Initialize new repository
+Generate new proto
 
 ```bash
-protoman init $PACKAGE $SERVICE_NAME $PROTO_ROOT
-protoman init spotify.foobar winning src/main/proto
+protoman generate $PACKAGE $SERVICE_NAME $PROTO_ROOT
+protoman generate spotify.foobar winning src/main/proto
 ```
 
 Get dependency
