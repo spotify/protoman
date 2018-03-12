@@ -38,7 +38,7 @@ func FindProtoFiles(rootPath string) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		errors.Wrap(err, "Error traversing directory "+rootPath)
+		errors.Wrap(err, "error traversing directory "+rootPath)
 	}
 	fmt.Printf("Found %v proto schema file(s)\n", len(protoFiles))
 	return protoFiles, nil

@@ -51,7 +51,7 @@ func Generate(packageName, serviceName, rootPath string) error {
 	cfg := config{}
 	err := cfg.AddLocalPackage(path)
 	if err != nil {
-		return errors.Wrap(err, "Failed to initialize configuration")
+		return errors.Wrap(err, "failed to add package")
 	}
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
