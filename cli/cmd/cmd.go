@@ -20,26 +20,28 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spotify/protoman/cli/publish"
+	"github.com/spotify/protoman/cli/protoman"
 	"github.com/spotify/protoman/cli/validator"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "protoman",
 	Short: "Protoman is a fantastic way of managing your protos",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("PROTOMAN PROTOMAN!")
-		fmt.Println("You probably need help, call me with -h")
-	},
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(validateCmd)
-	rootCmd.AddCommand(publishCmd)
+	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd)
 	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+}
+
+func exitOnErr(err error) {
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 var versionCmd = &cobra.Command{
@@ -61,10 +63,7 @@ var validateCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := validator.Validate(args[0]); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(validator.Validate(args[0]))
 		}
 	},
 }
@@ -83,18 +82,55 @@ var publishCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if _, err := os.Stat(args[0]); err == nil {
-			if err := publish.Publish(args[0], cmd.Flag("server").Value.String()); err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(protoman.Publish(args[0], cmd.Flag("server").Value.String()))
 		}
+	},
+}
+
+var genCmd = &cobra.Command{
+	Use:   "generate [package name] [service name] [root path]",
+	Short: "generate protocol stanza",
+	Long: `
+	Generate protocol stanza
+	Example:
+		package name: spotify.protoman.v1
+		service name: registry
+	The following input example will create
+	spotify/protoman/v1/registry.proto in your current directory alongside
+	a .protoman file that tracks your dependencies.
+	`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 3 {
+			return errors.New("Missing parameters")
+		}
+		if strings.HasPrefix(args[2], "/") {
+			return errors.New("Root path must be relative to project")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		exitOnErr(protoman.Generate(args[0], args[1], args[2]))
+	},
+}
+
+var getCmd = &cobra.Command{
+	Use:   "get [package name] [root path]",
+	Short: "Get package",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 2 {
+			return errors.New("Missing parameters")
+		}
+		if strings.HasPrefix(args[1], "/") {
+			return errors.New("Root path must be relative to project")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		exitOnErr(protoman.Get(args[0], args[1]))
 	},
 }
 
 // Execute CLI
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	exitOnErr(rootCmd.Execute())
 }

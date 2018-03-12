@@ -14,32 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package path
+package protoman
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
-// FindProtoFiles return list over all .proto files under given directory
-func FindProtoFiles(rootPath string) ([]string, error) {
-	protoFiles := []string{}
-
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-		if filepath.Ext(path) == ".proto" {
-			protoFiles = append(protoFiles, path)
-		}
-		return nil
-	})
-	if err != nil {
-		errors.Wrap(err, "error traversing directory "+rootPath)
+// Get package from protoman
+func Get(packageName, path string) error {
+	path = filepath.Join(path, strings.Replace(packageName, ".", "/", -1))
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return errors.Wrap(err, "failed to create package path")
 	}
-	fmt.Printf("Found %v proto schema file(s)\n", len(protoFiles))
-	return protoFiles, nil
+	// TODO: add gRPC request to actually fetch the dependencies locally
+	return addThirdPartyPackage(path)
 }
