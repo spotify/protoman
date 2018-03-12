@@ -5,15 +5,15 @@
 Initialize new repository
 
 ```bash
-protoman init $PACKAGE $SERVICE_NAME -p $PROTO_ROOT
-protoman init spotify.foobar winning -p src/main/proto
+protoman init $PACKAGE $SERVICE_NAME $PROTO_ROOT
+protoman init spotify.foobar winning src/main/proto
 ```
 
 Get dependency
 
 ```bash
-protoman get $PACKAGE
-protoman get spotify.random
+protoman get $PACKAGE $PROTO_ROOT
+protoman get spotify.random src/main/proto
 ```
 
 .protoman.yaml keep track of local and third party dependencies.
@@ -21,12 +21,11 @@ protoman get spotify.random
 Example content:
 
 ```yaml
-3rd_party:
-- spotify/apa
-- spotify/win
+third_party:
+- src/main/proto/spotify/apa
+- src/main/proto/spotify/win
 local:
-- spotify/foobar
-root-path: src/main/proto
+- src/main/proto/spotify/foobar
 ```
 
 ### Building
