@@ -46,7 +46,10 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	return nil
 }
 
-// Publish protofiles either from
+/*
+Publish list of protoPaths to registry, will resolve local packages
+defined .protoman configuration unless files are supplied.
+*/
 func Publish(protoPaths []string, serverAddr string) error {
 	if len(protoPaths) == 0 {
 		// No protos provided on command line, will upload local packages defined in .protoman
