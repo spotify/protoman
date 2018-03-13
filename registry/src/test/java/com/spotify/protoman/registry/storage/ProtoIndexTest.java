@@ -55,12 +55,12 @@ public class ProtoIndexTest {
   @Test
   public void updatePackageVersion() {
     final ProtoIndex protoIndex = ProtoIndex.empty();
-    protoIndex.updatePackageVersion("pkg1", SchemaVersion.create(1,0,0));
+    protoIndex.updatePackageVersion("pkg1", SchemaVersion.create("1",0,0));
 
     final ProtoIndex after = ProtoIndex.parse(protoIndex.toByteArray());
 
     assertThat(after.getPackageVersions(), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create(1,0,0)
+        "pkg1", SchemaVersion.create("1",0,0)
     )));
   }
 
@@ -72,7 +72,7 @@ public class ProtoIndexTest {
   @Test(expected = NullPointerException.class)
   public void updatePackageVersion_nullKeyNotAllowed() {
     ProtoIndex.empty().updatePackageVersion(null,
-        SchemaVersion.create(1,0,0));
+        SchemaVersion.create("1",0,0));
   }
 
 }
