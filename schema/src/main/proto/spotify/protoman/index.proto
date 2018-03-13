@@ -13,7 +13,7 @@ message Index {
 
 message ProtoLocation {
     string path = 1;
-    string blobName = 2;
+    string blob_name = 2;
 }
 
 message PackageVersion {
