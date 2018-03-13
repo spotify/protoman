@@ -59,7 +59,7 @@ func checkPackageName(packageName string, path string) error {
 	return nil
 }
 
-// ValidateProto validates a .proto file and returns a ProtoFile
+// ValidateProto validates a .proto file and returns a registry.ProtoFile
 func ValidateProto(path string) (*registry.ProtoFile, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -85,7 +85,7 @@ func ValidateProto(path string) (*registry.ProtoFile, error) {
 
 	proto := &registry.ProtoFile{
 		Path:    filepath.Join(strings.Replace(packageName, ".", "/", -1), filepath.Base(path)),
-		Content: content,
+		Content: string(content),
 	}
 	return proto, nil
 }
