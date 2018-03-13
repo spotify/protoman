@@ -2,6 +2,8 @@ package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.DescriptorProtos;
 import com.spotify.protoman.descriptor.DescriptorSet;
@@ -30,7 +32,8 @@ import javax.annotation.Nullable;
  */
 public class SemverSchemaVersioner implements SchemaVersioner {
 
-  private static final Pattern MAJOR_VERSION_RE = Pattern.compile(".*\\.v(?<major>\\d+)$");
+  private static final Pattern MAJOR_VERSION_RE =
+      Pattern.compile(".*\\.v(?<major>\\d+(?:alpha\\d*|beta\\d*)?)$");
 
   private SemverSchemaVersioner() {
   }
@@ -44,10 +47,11 @@ public class SemverSchemaVersioner implements SchemaVersioner {
                                         @Nullable final SchemaVersion currentVersion,
                                         final DescriptorSet current,
                                         final DescriptorSet candidate) {
-    final int majorVersion = getMajorVersion(protoPackage);
+    final String majorVersion = getMajorVersion(protoPackage);
     if (currentVersion == null) {
       return SchemaVersion.create(majorVersion, 0, 0);
     }
+    Preconditions.checkState(Objects.equals(majorVersion, currentVersion.major()));
 
     if (hasMinorVersionChange(protoPackage, current, candidate)) {
       final int minorVersion = currentVersion.minor() + 1;
@@ -62,12 +66,13 @@ public class SemverSchemaVersioner implements SchemaVersioner {
     return currentVersion;
   }
 
-  private static int getMajorVersion(final String protoPackage) {
+  @VisibleForTesting
+  static String getMajorVersion(final String protoPackage) {
     final Matcher matcher = MAJOR_VERSION_RE.matcher(protoPackage);
     if (matcher.matches()) {
-      return Integer.valueOf(matcher.group("major"));
+      return matcher.group("major");
     } else {
-      return 1;
+      return "1";
     }
   }
 

@@ -77,7 +77,7 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     // add package version for pkg1
     final long snapshot2;
     try (final Transaction tx = schemaStorage.open()) {
-      tx.storePackageVersion("pkg1", SchemaVersion.create(1, 0, 0));
+      tx.storePackageVersion("pkg1", SchemaVersion.create("1", 0, 0));
       snapshot2 = tx.commit();
     }
 
@@ -85,8 +85,8 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     final long snapshot3;
     try (final Transaction tx = schemaStorage.open()) {
       tx.storeFile(schemaFile2);
-      tx.storePackageVersion("pkg1", SchemaVersion.create(2, 0, 0));
-      tx.storePackageVersion("pkg2", SchemaVersion.create(0, 1, 0));
+      tx.storePackageVersion("pkg1", SchemaVersion.create("2", 0, 0));
+      tx.storePackageVersion("pkg2", SchemaVersion.create("0", 1, 0));
       snapshot3 = tx.commit();
     }
 
@@ -100,8 +100,8 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     // delete a file and update package version without committing transaction
     try (final Transaction tx = schemaStorage.open()) {
       tx.storeFile(schemaFile2);
-      tx.storePackageVersion("pkg1", SchemaVersion.create(2, 0, 0));
-      tx.storePackageVersion("pkg2", SchemaVersion.create(0, 1, 0));
+      tx.storePackageVersion("pkg1", SchemaVersion.create("2", 0, 0));
+      tx.storePackageVersion("pkg2", SchemaVersion.create("0", 1, 0));
       // no commit
     }
     final long snapshot5;
@@ -119,25 +119,25 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     assertThat(snapshot2, is(greaterThan(snapshot1)));
     assertThat(schemaFiles(snapshot2), equalTo(ImmutableSet.of(schemaFile1)));
     assertThat(packageVersions(snapshot2), equalTo(ImmutableMap.of("pkg1",
-        SchemaVersion.create(1, 0, 0))));
+        SchemaVersion.create("1", 0, 0))));
 
     assertThat(snapshot3, is(greaterThan(snapshot2)));
     assertThat(schemaFiles(snapshot3), equalTo(ImmutableSet.of(schemaFile1, schemaFile2)));
     assertThat(packageVersions(snapshot3), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create(2, 0, 0),
-        "pkg2", SchemaVersion.create(0, 1, 0))));
+        "pkg1", SchemaVersion.create("2", 0, 0),
+        "pkg2", SchemaVersion.create("0", 1, 0))));
 
     assertThat(snapshot4, is(greaterThan(snapshot3)));
     assertThat(schemaFiles(snapshot4), equalTo(ImmutableSet.of(schemaFile1)));
     assertThat(packageVersions(snapshot4), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create(2, 0, 0),
-        "pkg2", SchemaVersion.create(0, 1, 0))));
+        "pkg1", SchemaVersion.create("2", 0, 0),
+        "pkg2", SchemaVersion.create("0", 1, 0))));
 
     assertThat(snapshot5, equalTo(snapshot4));
     assertThat(schemaFiles(snapshot4), equalTo(ImmutableSet.of(schemaFile1)));
     assertThat(packageVersions(snapshot4), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create(2, 0, 0),
-        "pkg2", SchemaVersion.create(0, 1, 0))));
+        "pkg1", SchemaVersion.create("2", 0, 0),
+        "pkg2", SchemaVersion.create("0", 1, 0))));
 
   }
 
@@ -152,7 +152,7 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
     // store pkg
     try (final Transaction tx = schemaStorage.open()) {
-      tx.storePackageVersion("pkg1", SchemaVersion.create(1, 0, 0));
+      tx.storePackageVersion("pkg1", SchemaVersion.create("1", 0, 0));
       tx.commit();
     }
 
@@ -161,7 +161,7 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     }
 
     assertThat(before, is(Optional.empty()));
-    assertThat(after, is(Optional.of(SchemaVersion.create(1, 0, 0))));
+    assertThat(after, is(Optional.of(SchemaVersion.create("1", 0, 0))));
   }
 
   @Test(expected = IllegalStateException.class)

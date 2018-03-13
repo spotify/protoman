@@ -11,7 +11,7 @@ CREATE TABLE file (
 CREATE TABLE package_version (
   id SERIAL PRIMARY KEY,
   package TEXT NOT NULL,
-  major INTEGER NOT NULL,
+  major TEXT NOT NULL,
   minor INTEGER NOT NULL,
   patch INTEGER NOT NULL
 );

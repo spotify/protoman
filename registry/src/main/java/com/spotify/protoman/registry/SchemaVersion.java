@@ -5,7 +5,7 @@ import com.google.auto.value.AutoValue;
 @AutoValue
 public abstract class SchemaVersion {
 
-  public abstract int major();
+  public abstract String major();
 
   public abstract int minor();
 
@@ -22,7 +22,7 @@ public abstract class SchemaVersion {
         .toString();
   }
 
-  public static SchemaVersion create(final int major, final int minor, final int patch) {
+  public static SchemaVersion create(final String major, final int minor, final int patch) {
     return new AutoValue_SchemaVersion(major, minor, patch);
   }
 }

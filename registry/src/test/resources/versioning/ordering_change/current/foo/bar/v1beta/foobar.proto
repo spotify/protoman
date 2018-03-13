@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package foo.bar;
+package foo.bar.v1beta;
 
 message Foobar {
     int32 b = 2;
