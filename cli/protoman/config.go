@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -81,12 +82,12 @@ func readConfig() (*config, error) {
 
 	data, err := ioutil.ReadFile(defaultConfig)
 	if err = createOnNotExist(err); err != nil {
-		return &c, err
+		return &c, errors.Wrap(err, "failed to read .protoman config file")
 	}
 
 	err = yaml.Unmarshal([]byte(data), &c)
 	if err != nil {
-		return &c, err
+		return &c, errors.Wrap(err, "failed to unmarshal yaml, invalid format")
 	}
 
 	return &c, err

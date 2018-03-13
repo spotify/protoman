@@ -80,13 +80,13 @@ func TestCheckPackageName(t *testing.T) {
 			name:          "EmptyPackageName",
 			packageName:   "",
 			path:          "bla/foo/bar/bad.proto",
-			expectedError: "Missing package name",
+			expectedError: "missing package name",
 		},
 		{
 			name:          "PathMismatch",
 			packageName:   "foo.bar",
 			path:          "bla/bla/bad.proto",
-			expectedError: "Package name does not match path, expected path to end with foo/bar",
+			expectedError: "package name does not match path, expected path to end with foo/bar",
 		},
 	}
 	for _, tc := range tt {
