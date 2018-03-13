@@ -7,8 +7,9 @@ option go_package = "registry";
 option java_multiple_files = true;
 
 message Index {
-    repeated ProtoLocation proto_location = 1;
-    repeated PackageVersion package_version = 2;
+    map<string, string> proto_locations = 1;
+    map<string, Version> package_versions = 2;
+    repeated PackageDependency package_dependecies = 3;
 }
 
 message ProtoLocation {
@@ -16,9 +17,9 @@ message ProtoLocation {
     string blob_name = 2;
 }
 
-message PackageVersion {
+message PackageDependency {
     string package = 1;
-    Version version = 2;
+    string path = 2;
 }
 
 message Version {
