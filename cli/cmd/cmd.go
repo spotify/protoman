@@ -70,19 +70,20 @@ var validateCmd = &cobra.Command{
 
 var publishCmd = &cobra.Command{
 	Use:   "publish [protos]",
-	Short: "Publish proto defintion file(s) to the protoman registry.",
+	Short: "Publish proto defintion file(s) to a protoman registry.",
 	Long: `
-	Publish proto defintion file(s) to the protoman registry.
+	Publish proto defintion file(s) to a protoman registry.
 	Providing no arguments will upload local packages defined in .protoman`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if cmd.Flag("server").Value.String() == "" {
 			return errors.New("--server must be specified when publishing")
 		}
-		if len(args) != 0 {
-			for _, proto := range args {
-				if !strings.HasSuffix(proto, ".proto") {
-					return errors.New("Must be .proto files")
-				}
+		if len(args) == 0 {
+			return nil
+		}
+		for _, proto := range args {
+			if !strings.HasSuffix(proto, ".proto") {
+				return errors.New("must be .proto files")
 			}
 		}
 		return nil
