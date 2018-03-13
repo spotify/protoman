@@ -28,6 +28,19 @@ import (
 	"google.golang.org/grpc"
 )
 
+func formatResponse(err *registry.Error, violations []*registry.ValidationViolation) error {
+	if violations != nil {
+		fmt.Println("Violations:")
+		for _, v := range violations {
+			fmt.Printf("Description: %s\nCurrent: %s\nCandidate: %s\n", v.Description, v.Current, v.Candidate)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("Error: %s", err.Message)
+	}
+	return nil
+}
+
 func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	fmt.Printf("Uploading to %s\n", serverAddr)
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithTimeout(time.Second))
@@ -39,11 +52,14 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	request := registry.PublishSchemaRequest{ProtoFile: protoFiles}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 
-	_, err = client.PublishSchema(ctx, &request)
+	resp, err := client.PublishSchema(ctx, &request)
 	if err != nil {
 		return errors.Wrap(err, "failed to upload schema")
 	}
-	return nil
+	if resp.Error != nil {
+
+	}
+	return formatResponse(resp.Error, resp.Violation)
 }
 
 /*
