@@ -4,6 +4,9 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 
 import com.spotify.protoman.Error;
 import com.spotify.protoman.FilePosition;
+import com.spotify.protoman.GetSchemaRequest;
+import com.spotify.protoman.GetSchemaResponse;
+import com.spotify.protoman.ProtoFile;
 import com.spotify.protoman.PublishSchemaRequest;
 import com.spotify.protoman.PublishSchemaResponse;
 import com.spotify.protoman.PublishedPackage;
@@ -18,13 +21,17 @@ import javax.annotation.Nullable;
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {
 
   private final SchemaPublisher schemaPublisher;
+  private final SchemaGetter schemaGetter;
 
-  private SchemaRegistryService(final SchemaPublisher schemaPublisher) {
+  private SchemaRegistryService(final SchemaPublisher schemaPublisher,
+                                final SchemaGetter schemaGetter) {
     this.schemaPublisher = schemaPublisher;
+    this.schemaGetter = schemaGetter;
   }
 
-  public static SchemaRegistryService create(final SchemaPublisher schemaPublisher) {
-    return new SchemaRegistryService(schemaPublisher);
+  public static SchemaRegistryService create(final SchemaPublisher schemaPublisher,
+                                             final SchemaGetter schemaGetter) {
+    return new SchemaRegistryService(schemaPublisher, schemaGetter);
   }
 
   @Override
@@ -75,6 +82,28 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
     }
   }
 
+  @Override
+  public void getSchema(final GetSchemaRequest request,
+                        final StreamObserver<GetSchemaResponse> responseObserver) {
+    try {
+      // TODO(staffan): Have some to handle expected errors. E.g. if the request package does not
+      // exist
+      final GetSchemaResponse.Builder responseBuilder = GetSchemaResponse.newBuilder();
+      schemaGetter.getSchemataForPackages(request.getRequestList().stream()
+          .map(GetSchemaRequest.RequestedPackage::getPackage)
+          .collect(toImmutableList())
+      ).map(SchemaRegistryService::schemaFileToProto)
+          .forEach(responseBuilder::addProtoFile);
+      responseObserver.onNext(responseBuilder.build());
+      responseObserver.onCompleted();
+    } catch (Exception e) {
+      // TODO(staffan): Return errors in some sane way?
+      // We encountered an unexpected error. E.g. we couldn't run protoc at all because we're out
+      // of disk.
+      responseObserver.onError(e);
+    }
+  }
+
   private static com.spotify.protoman.FilePosition sourceCodeInfoToFilePositionProto(
       final SourceCodeInfo sourceCodeInfo) {
     return FilePosition.newBuilder()
@@ -112,6 +141,13 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
         .setMajor(v.major())
         .setMinor(v.minor())
         .setPatch(v.patch())
+        .build();
+  }
+
+  private static ProtoFile schemaFileToProto(final SchemaFile schemaFile) {
+    return ProtoFile.newBuilder()
+        .setPath(schemaFile.path().toString())
+        .setContent(schemaFile.content())
         .build();
   }
 }

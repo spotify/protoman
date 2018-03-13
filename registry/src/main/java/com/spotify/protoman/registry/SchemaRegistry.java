@@ -1,5 +1,6 @@
 package com.spotify.protoman.registry;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -15,15 +16,19 @@ import com.spotify.protoman.registry.storage.SchemaStorage;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
-public class SchemaRegistry implements SchemaPublisher {
+public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
   private final SchemaStorage schemaStorage;
   private final SchemaValidator schemaValidator;
@@ -233,6 +238,64 @@ public class SchemaRegistry implements SchemaPublisher {
           candidateFd.map(FileDescriptor::toProto).orElse(null)
       );
     });
+  }
+
+  @Override
+  public Stream<SchemaFile> getSchemataForPackages(final ImmutableList<String> protoPackages) {
+    // Super hacky implementation for getting schemata. It builds a DescriptorSet for ALL proto
+    // files in the registry to determine which files to return (based on package). As well as
+    // resolve dependencies and transitive dependencies.
+    // TODO(staffan): Make implementation this not suck :)
+    final ImmutableMap<Path, SchemaFile> allSchemaFiles;
+    try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
+      allSchemaFiles = tx.fetchAllFiles()
+          .collect(toImmutableMap(SchemaFile::path, Function.identity()));
+    }
+
+    try (final DescriptorBuilder descriptorBuilder =
+             descriptorBuilderFactory.newDescriptorBuilder()) {
+      for (final SchemaFile file : allSchemaFiles.values()) {
+        descriptorBuilder.setProtoFile(file.path(), file.content());
+      }
+
+      final DescriptorBuilder.Result result =
+          descriptorBuilder.buildDescriptor(allSchemaFiles.keySet().stream());
+
+      if (result.compilationError() != null) {
+        throw new RuntimeException("Protoc compilation failed: " + result.compilationError());
+      }
+
+      final DescriptorSet descriptorSet =
+          DescriptorSet.create(result.fileDescriptorSet(), __ -> true);
+
+      // Build a dependency map
+      final ImmutableMap<Path, FileDescriptor> fileDescriptorMap =
+          descriptorSet.fileDescriptors().stream()
+              .collect(toImmutableMap(FileDescriptor::filePath, Function.identity()));
+
+      // Resolve dependencies
+      final Set<Path> paths = new HashSet<>();
+      final Queue<Path> q = new ArrayDeque<>();
+      // Get all the files for the request packages
+      final ImmutableList<Path> pathsForRequestedPackages = descriptorSet.fileDescriptors()
+          .stream()
+          .filter(fileDescriptor -> protoPackages.contains(fileDescriptor.protoPackage()))
+          .map(FileDescriptor::filePath)
+          .collect(toImmutableList());
+      q.addAll(pathsForRequestedPackages);
+      while (!q.isEmpty()) {
+        final Path path = q.poll();
+        paths.add(path);
+        fileDescriptorMap.get(path).dependencies().stream()
+            .map(FileDescriptor::filePath)
+            .filter(p -> !paths.contains(p))
+            .forEach(q::add);
+      }
+
+      return paths.stream().map(allSchemaFiles::get);
+    } catch (DescriptorBuilderException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @AutoValue
