@@ -46,12 +46,24 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	return nil
 }
 
-// Publish publishes all .proto file under given directory
-func Publish(root string, serverAddr string) error {
-	protoPaths, err := path.FindProtoFiles(root)
-	if err != nil {
-		return err
+// Publish protofiles either from
+func Publish(protoPaths []string, serverAddr string) error {
+	if len(protoPaths) == 0 {
+		// No protos provided on command line, will upload local packages defined in .protoman
+		c, err := readConfig()
+		if err != nil {
+			return err
+		}
+
+		for _, p := range c.Local {
+			p, err := path.FindProtoFiles(p)
+			if err != nil {
+				return err
+			}
+			protoPaths = append(protoPaths, p...)
+		}
 	}
+
 	protos, validationErr := validator.ValidateProtos(protoPaths)
 	if validationErr != nil {
 		return validationErr
