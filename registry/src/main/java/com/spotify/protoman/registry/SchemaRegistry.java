@@ -248,7 +248,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     // TODO(staffan): Make implementation this not suck :)
     final ImmutableMap<Path, SchemaFile> allSchemaFiles;
     try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-      allSchemaFiles = tx.fetchAllFiles()
+      allSchemaFiles = tx.fetchAllFiles(tx.getLatestSnapshotVersion())
           .collect(toImmutableMap(SchemaFile::path, Function.identity()));
     }
 
