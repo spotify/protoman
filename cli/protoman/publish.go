@@ -56,9 +56,6 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to upload schema")
 	}
-	if resp.Error != nil {
-
-	}
 	return formatResponse(resp.Error, resp.Violation)
 }
 
