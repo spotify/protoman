@@ -184,7 +184,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
    * includedPaths} only contains a.proto then the resulting {@link DescriptorSet} will only
    * contain a.proto.
    */
-  private static  @Nullable DescriptorSet createFilteredDescriptorSet(
+  private static @Nullable DescriptorSet createFilteredDescriptorSet(
       @Nullable final DescriptorProtos.FileDescriptorSet fileDescriptorSet,
       final ImmutableSet<Path> includedPaths) {
     return fileDescriptorSet != null
