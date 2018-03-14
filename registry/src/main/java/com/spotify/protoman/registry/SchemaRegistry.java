@@ -8,6 +8,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.protobuf.DescriptorProtos;
 import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
@@ -98,6 +99,11 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
   private BuildDescriptorsResult buildDescriptorSets(final SchemaStorage.Transaction tx,
                                                      final ImmutableList<SchemaFile> schemaFiles)
       throws DescriptorBuilderException {
+    // Paths of all updated files
+    final ImmutableSet<Path> updatedPaths = schemaFiles.stream()
+        .map(SchemaFile::path)
+        .collect(toImmutableSet());
+
     try (final DescriptorBuilder descriptorBuilder =
              descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with all files from registry
@@ -139,16 +145,12 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       // - Track dependencies are ensured that types in use are not removed
       final DescriptorBuilder.Result currentResult = descriptorBuilder.buildDescriptor(
           currentSchemata.keySet().stream()
-          //schemaFiles.stream()
-          //    .map(SchemaFile::path)
-          //    .filter(path -> currentSchemata.keySet().contains(path))
       );
-      @Nullable final DescriptorSet currentDs =
-          currentResult.fileDescriptorSet() != null ?
-          DescriptorSet.create(
-              currentResult.fileDescriptorSet(),
-              path -> currentSchemata.keySet().contains(path)
-          ) : null;
+
+      @Nullable final DescriptorSet currentDs = createFilteredDescriptorSet(
+          currentResult.fileDescriptorSet(),
+          updatedPaths
+      );
 
       // Build DescriptorSet for the updated files
       for (SchemaFile schemaFile : schemaFiles) {
@@ -161,21 +163,33 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
               schemaFiles.stream().map(SchemaFile::path)
           ).collect(toImmutableSet())
           .stream()
-          //schemaFiles.stream()
-          //    .map(SchemaFile::path)
       );
-      @Nullable final DescriptorSet candidateDs =
-          candidateResult.fileDescriptorSet() != null ?
-          DescriptorSet.create(
-              candidateResult.fileDescriptorSet(),
-              path -> schemaFiles.stream().anyMatch(sf -> Objects.equals(sf.path(), path))
-          ) : null;
+      @Nullable final DescriptorSet candidateDs = createFilteredDescriptorSet(
+          candidateResult.fileDescriptorSet(),
+          updatedPaths
+      );
 
       return BuildDescriptorsResult.create(
           currentDs, candidateDs,
           currentResult.compilationError(), candidateResult.compilationError()
       );
     }
+  }
+
+  /**
+   * Given a {@link com.google.protobuf.DescriptorProtos.FileDescriptorSet} return a DescriptorSet
+   * for any files matching the supplied paths.
+   *
+   * E.g. if given file descriptor set contains descriptors for a.proto, b.proto but {@code
+   * includedPaths} only contains a.proto then the resulting {@link DescriptorSet} will only
+   * contain a.proto.
+   */
+  private static  @Nullable DescriptorSet createFilteredDescriptorSet(
+      @Nullable final DescriptorProtos.FileDescriptorSet fileDescriptorSet,
+      final ImmutableSet<Path> includedPaths) {
+    return fileDescriptorSet != null
+           ? DescriptorSet.create(fileDescriptorSet, includedPaths::contains)
+           : null;
   }
 
   private ImmutableMap<String, SchemaVersionPair> updatePackageVersions(
