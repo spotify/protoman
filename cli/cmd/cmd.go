@@ -34,7 +34,9 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd)
-	rootCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+	publishCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+	rootCmd.PersistentFlags().StringP("proto-dir", "p", "", "Root directory where protos will be stored")
+	getCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 }
 
 func exitOnErr(err error) {
@@ -75,8 +77,8 @@ var publishCmd = &cobra.Command{
 	Publish proto defintion file(s) to a protoman registry.
 	Providing no arguments will upload local packages defined in .protoman`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if cmd.Flag("server").Value.String() == "" {
-			return errors.New("--server must be specified when publishing")
+		if err := verifyFlags(cmd); err != nil {
+			return err
 		}
 		if len(args) == 0 {
 			return nil
@@ -89,7 +91,9 @@ var publishCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Publish(args, cmd.Flag("server").Value.String()))
+		exitOnErr(protoman.Publish(
+			args, cmd.Flag("proto-dir").Value.String(),
+			cmd.Flag("server").Value.String()))
 	},
 }
 
@@ -119,20 +123,27 @@ var genCmd = &cobra.Command{
 	},
 }
 
+func verifyFlags(cmd *cobra.Command) error {
+	if cmd.Flag("server").Value.String() == "" {
+		return errors.New("--server must be set to the protoman registry")
+	}
+	if cmd.Flag("proto-dir").Value.String() == "" {
+		return errors.New("--proto-dir must be specified")
+	}
+	if strings.HasPrefix(cmd.Flag("proto-dir").Value.String(), "/") {
+		return errors.New("Proto dir must be relative to project")
+	}
+	return nil
+}
+
 var getCmd = &cobra.Command{
-	Use:   "get [package name] [root path]",
+	Use:   "get [package names]",
 	Short: "Get package",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 2 {
-			return errors.New("Missing parameters")
-		}
-		if strings.HasPrefix(args[1], "/") {
-			return errors.New("Root path must be relative to project")
-		}
-		return nil
+		return verifyFlags(cmd)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Get(args[0], args[1]))
+		exitOnErr(protoman.Get(args, cmd.Flag("proto-dir").Value.String(), cmd.Flag("server").Value.String()))
 	},
 }
 

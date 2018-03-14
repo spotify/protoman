@@ -19,6 +19,8 @@ package protoman
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -63,7 +65,7 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 Publish list of protoPaths to registry, will resolve local packages
 defined .protoman configuration unless files are supplied.
 */
-func Publish(protoPaths []string, serverAddr string) error {
+func Publish(protoPaths []string, protoDir, serverAddr string) error {
 	if len(protoPaths) == 0 {
 		// No protos provided on command line, will upload local packages defined in .protoman
 		c, err := readConfig()
@@ -72,7 +74,7 @@ func Publish(protoPaths []string, serverAddr string) error {
 		}
 
 		for _, p := range c.Local {
-			p, err := path.FindProtoFiles(p)
+			p, err := path.FindProtoFiles(filepath.Join(protoDir, strings.Replace(p, ".", "/", -1)))
 			if err != nil {
 				return err
 			}

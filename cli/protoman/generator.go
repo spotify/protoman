@@ -48,7 +48,7 @@ func Generate(packageName, serviceName, rootPath string) error {
 	// Convert spotify.foobar to spotify/foobar
 	packagePath := strings.Replace(packageName, ".", "/", -1)
 	path := filepath.Join(rootPath, packagePath)
-	if err := addLocalPackage(path); err != nil {
+	if err := addLocalPackage(packageName); err != nil {
 		return errors.Wrap(err, "failed to add package")
 	}
 

@@ -27,7 +27,9 @@ import (
 // FindProtoFiles return list over all .proto files under given directory
 func FindProtoFiles(rootPath string) ([]string, error) {
 	protoFiles := []string{}
-
+	if _, err := os.Stat(rootPath); err != nil {
+		return nil, fmt.Errorf("%s does not exist", rootPath)
+	}
 	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil

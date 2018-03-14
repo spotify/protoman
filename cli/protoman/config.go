@@ -32,36 +32,36 @@ type config struct {
 const defaultConfig = ".protoman"
 
 // addLocalPackage to config.
-func addLocalPackage(path string) error {
+func addLocalPackage(packageName string) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
 
 	for _, pkg := range cfg.Local {
-		if pkg == path {
+		if pkg == packageName {
 			return nil
 		}
 	}
 
-	cfg.Local = append(cfg.Local, path)
+	cfg.Local = append(cfg.Local, packageName)
 	return writeConfig(cfg)
 }
 
 // addThirdPartyPackage to config.
-func addThirdPartyPackage(path string) error {
+func addThirdPartyPackage(packageName string) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
 
 	for _, pkg := range cfg.ThirdParty {
-		if pkg == path {
+		if pkg == packageName {
 			return nil
 		}
 	}
 
-	cfg.ThirdParty = append(cfg.ThirdParty, path)
+	cfg.ThirdParty = append(cfg.ThirdParty, packageName)
 	return writeConfig(cfg)
 }
 
