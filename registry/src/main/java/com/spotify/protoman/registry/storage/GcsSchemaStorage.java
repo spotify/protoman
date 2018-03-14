@@ -11,10 +11,12 @@ import com.spotify.protoman.registry.SchemaVersion;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,10 +117,11 @@ public class GcsSchemaStorage implements SchemaStorage {
         Preconditions.checkState(state.get() == TxState.OPEN);
 
         final ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
+        final Map<String, String> protoLocations = currentProtoIndex.getProtoLocations();
         return Multimaps.filterKeys(currentProtoIndex.getPackageDependencies(),
             pkg -> protoPackages.contains(pkg)).values()
             .stream()
-            .map(path -> schemaFile(path, currentProtoIndex.getProtoLocations().get(path)));
+            .map(path -> schemaFile(path, protoLocations.get(path.toString())));
       }
 
       @Override
@@ -167,6 +170,8 @@ public class GcsSchemaStorage implements SchemaStorage {
       }
 
       private SchemaFile schemaFile(final Path path, final String hash) {
+        Objects.requireNonNull(path);
+        Objects.requireNonNull(hash);
         return SchemaFile.create(path,
             new String(protoStorage.get(HashCode.fromString(hash))
                 .orElseThrow(() -> new RuntimeException("Not found: " + hash)), Charsets.UTF_8));

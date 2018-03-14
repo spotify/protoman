@@ -17,8 +17,12 @@ import com.spotify.protoman.validation.ValidationViolation;
 import io.grpc.stub.StreamObserver;
 import java.nio.file.Paths;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImplBase {
+
+  private static final Logger logger = LoggerFactory.getLogger(SchemaRegistryService.class);
 
   private final SchemaPublisher schemaPublisher;
   private final SchemaGetter schemaGetter;
@@ -75,6 +79,7 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
       responseObserver.onNext(responseBuilder.build());
       responseObserver.onCompleted();
     } catch (Exception e) {
+      logger.error("publishSchema: {}", e.toString(), e);
       // TODO(staffan): Return errors in some sane way?
       // We encountered an unexpected error. E.g. we couldn't run protoc at all because we're out
       // of disk.
@@ -97,6 +102,7 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
       responseObserver.onNext(responseBuilder.build());
       responseObserver.onCompleted();
     } catch (Exception e) {
+      logger.error("getSchema: {}", e.toString(), e);
       // TODO(staffan): Return errors in some sane way?
       // We encountered an unexpected error. E.g. we couldn't run protoc at all because we're out
       // of disk.

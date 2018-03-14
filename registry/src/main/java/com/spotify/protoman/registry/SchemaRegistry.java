@@ -30,8 +30,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
+
+  private static final Logger logger = LoggerFactory.getLogger(SchemaRegistry.class);
 
   private final SchemaStorage schemaStorage;
   private final SchemaValidator schemaValidator;
@@ -84,17 +88,19 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       }
 
       // Store files, but only for protos that changed
-      // and update dependencies for packages in the changed proto files
-      updatedFiles(schemaFiles.stream(), currentDs, candidateDs).forEach(file -> {
-        final String pkgName = candidateDs.findFileByPath(file.path()).get().fullName();
-        final Set<Path> dependencies = resolvePackageDependencies(pkgName, candidateDs);
-        tx.storeFile(file);
-        tx.storePackageDependencies(pkgName, dependencies);
-      });
+      updatedFiles(schemaFiles.stream(), currentDs, candidateDs)
+          .forEach(file -> tx.storeFile(file));
 
       // Update package versions (only for packages that have changed)
       final ImmutableMap<String, SchemaVersionPair> publishedPackages =
           updatePackageVersions(tx, currentDs, candidateDs);
+
+      // Update proto file dependencies for published packages
+      publishedPackages.keySet().forEach(pkgName -> {
+        final Set<Path> dependencies = resolvePackageDependencies(pkgName, candidateDs);
+        logger.debug("pkgName: {}, deps: {}", pkgName, dependencies);
+        tx.storePackageDependencies(pkgName, dependencies);
+      });
 
       tx.commit();
 
@@ -118,7 +124,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       // Builder DescriptorSet for what is currently in the registry for the files being updated
       final long snapshotVersion = tx.getLatestSnapshotVersion();
       final ImmutableMap<Path, SchemaFile> currentSchemata =
-          tx.fetchAllFiles(snapshotVersion).collect(toImmutableMap(SchemaFile::path, Function.identity()));
+          tx.fetchAllFiles(snapshotVersion)
+              .collect(toImmutableMap(SchemaFile::path, Function.identity()));
 
       for (SchemaFile file : currentSchemata.values()) {
         descriptorBuilder.setProtoFile(file.path(), file.content());
@@ -170,7 +177,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
               currentSchemata.keySet().stream(),
               schemaFiles.stream().map(SchemaFile::path)
           ).collect(toImmutableSet())
-          .stream()
+              .stream()
       );
       @Nullable final DescriptorSet candidateDs = createFilteredDescriptorSet(
           candidateResult.fileDescriptorSet(),
@@ -192,7 +199,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
    * includedPaths} only contains a.proto then the resulting {@link DescriptorSet} will only
    * contain a.proto.
    */
-  private static @Nullable DescriptorSet createFilteredDescriptorSet(
+  private static @Nullable
+  DescriptorSet createFilteredDescriptorSet(
       @Nullable final DescriptorProtos.FileDescriptorSet fileDescriptorSet,
       final ImmutableSet<Path> includedPaths) {
     return fileDescriptorSet != null
@@ -299,7 +307,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     }
   }
 
-  private static Set<Path> resolvePackageDependencies(final String pkgName, final DescriptorSet descriptorSet) {
+  private static Set<Path> resolvePackageDependencies(final String pkgName,
+                                                      final DescriptorSet descriptorSet) {
     // Build a dependency map
     final ImmutableMap<Path, FileDescriptor> fileDescriptorMap =
         descriptorSet.fileDescriptors().stream()
