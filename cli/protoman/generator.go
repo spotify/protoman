@@ -62,7 +62,7 @@ func Generate(packageName, serviceName, rootPath string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to create proto file")
 	}
-	if t.Execute(f, templateParams{ServiceName: serviceName, PackageName: packageName}) != nil {
+	if t.Execute(f, templateParams{ServiceName: strings.Title(serviceName), PackageName: packageName}) != nil {
 		return err
 	}
 
