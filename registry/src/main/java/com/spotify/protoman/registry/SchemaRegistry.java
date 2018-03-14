@@ -85,8 +85,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       // Store files, but only for protos that changed
       // and update dependencies for packages in the changed proto files
       updatedFiles(schemaFiles.stream(), currentDs, candidateDs).forEach(file -> {
-        final String pkgName = currentDs.findFileByPath(file.path()).get().fullName();
-        final Set<Path> dependencies = resolvePackageDependencies(pkgName, currentDs);
+        final String pkgName = candidateDs.findFileByPath(file.path()).get().fullName();
+        final Set<Path> dependencies = resolvePackageDependencies(pkgName, candidateDs);
         tx.storeFile(file);
         tx.storePackageDependencies(pkgName, dependencies);
       });
