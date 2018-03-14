@@ -12,8 +12,13 @@ protoman generate spotify.foobar winning src/main/proto
 Get dependency
 
 ```bash
-protoman get $PACKAGE $PROTO_ROOT
-protoman get spotify.random src/main/proto
+protoman get -s $SERVER -p $PROTO_ROOT $PACKAGES
+```
+
+Publish local packages
+
+```bash
+protoman publish -s $SERVER -p $PROTO_ROOT
 ```
 
 .protoman.yaml keep track of local and third party dependencies.
@@ -22,10 +27,10 @@ Example content:
 
 ```yaml
 third_party:
-- src/main/proto/spotify/apa
-- src/main/proto/spotify/win
+- spotify.apa
+- spotify.win
 local:
-- src/main/proto/spotify/foobar
+- spotify.foobar
 ```
 
 ### Building
