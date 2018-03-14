@@ -2,10 +2,14 @@ package com.spotify.protoman.registry.storage;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.spotify.protoman.registry.SchemaVersion;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Test;
 
 public class ProtoIndexTest {
@@ -25,6 +29,7 @@ public class ProtoIndexTest {
 
     assertThat(parsed.getPackageVersions(), equalTo(empty.getPackageVersions()));
     assertThat(parsed.getProtoLocations(), equalTo(empty.getProtoLocations()));
+    assertThat(parsed.getPackageDependencies(), equalTo(empty.getPackageDependencies()));
   }
 
   @Test
@@ -61,6 +66,24 @@ public class ProtoIndexTest {
 
     assertThat(after.getPackageVersions(), equalTo(ImmutableMap.of(
         "pkg1", SchemaVersion.create("1",0,0)
+    )));
+  }
+
+  @Test
+  public void updatePackageDependencies() {
+    final Path path1 = Paths.get("/pkg1/proto1.proto");
+    final Path path2 = Paths.get("/pkg2/proto2.proto");
+
+    final ProtoIndex protoIndex = ProtoIndex.empty();
+    protoIndex.updatePackageDependencies("pkg1", ImmutableSet.of(path1, path2));
+    protoIndex.updatePackageDependencies("pkg2", ImmutableSet.of(path2));
+
+    final ProtoIndex after = ProtoIndex.parse(protoIndex.toByteArray());
+
+    assertThat(after.getPackageDependencies(), equalTo(ImmutableSetMultimap.of(
+        "pkg1", path1,
+        "pkg1", path2,
+        "pkg2", path2
     )));
   }
 

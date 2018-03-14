@@ -1,5 +1,7 @@
 package com.spotify.protoman.registry;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
@@ -12,9 +14,13 @@ import java.io.IOException;
 
 public class Main {
 
-  private static final int GRPC_PORT = 8080;
+  public static final String DEFAULT_BUCKET_NAME = "protoman";
 
-  private static final String BUCKET_NAME = "protoman";
+  private static final int GRPC_PORT = 8080;
+  private static final String BUCKET_NAME = firstNonNull(
+      System.getenv("PROTOMAN_BUCKET"),
+      DEFAULT_BUCKET_NAME
+  );
 
   public static void main(final String... args) throws IOException {
     final SchemaRegistry schemaRegistry = createSchemaRegistry();
@@ -23,7 +29,9 @@ public class Main {
         schemaRegistry,
         schemaRegistry
     );
-    final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
+    final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service)
+        .intercept(new LoggingServerInterceptor())
+        .build();
 
     grpcServer.start();
 
@@ -48,4 +56,5 @@ public class Main {
         ProtocDescriptorBuilder.factoryBuilder().build()
     );
   }
+
 }

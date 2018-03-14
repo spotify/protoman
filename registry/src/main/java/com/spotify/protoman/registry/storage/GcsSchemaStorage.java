@@ -4,14 +4,16 @@ import com.google.cloud.storage.Storage;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multimaps;
 import com.google.common.hash.HashCode;
 import com.spotify.protoman.registry.SchemaFile;
 import com.spotify.protoman.registry.SchemaVersion;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -26,7 +28,7 @@ public class GcsSchemaStorage implements SchemaStorage {
   private final ContentAddressedBlobStorage protoStorage;
   private final GcsGenerationalFile indexFile;
 
-  private enum TxState { OPEN, COMMITED, CLOSED }
+  private enum TxState {OPEN, COMMITTED, CLOSED}
 
   private GcsSchemaStorage(final Storage storage, final String bucket) {
     Objects.requireNonNull(bucket);
@@ -93,29 +95,41 @@ public class GcsSchemaStorage implements SchemaStorage {
       }
 
       @Override
+      public void storePackageDependencies(final String protoPackage, final Set<Path> paths) {
+        Preconditions.checkState(state.get() == TxState.OPEN);
+        protoIndex.updatePackageDependencies(protoPackage, paths);
+      }
+
+      @Override
       public Optional<SchemaVersion> getPackageVersion(final long snapshotVersion,
                                                        final String protoPackage) {
         Preconditions.checkState(state.get() == TxState.OPEN);
-        ProtoIndex currentProtoIndex = protoIndex;
-        if (snapshotVersion != indexGeneration) {
-          currentProtoIndex = ProtoIndex.parse(indexFile.contentForGeneration(snapshotVersion));
-        }
-        return Optional.ofNullable(currentProtoIndex.getPackageVersions().get(protoPackage));
+        final SchemaVersion schemaVersion = protoIndex(snapshotVersion)
+            .getPackageVersions().get(protoPackage);
+        return Optional.ofNullable(schemaVersion);
+      }
+
+      @Override
+      public Stream<SchemaFile> fetchFilesForPackage(final long snapshotVersion,
+                                                     final List<String> protoPackages) {
+        Preconditions.checkState(state.get() == TxState.OPEN);
+
+        final ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
+        return Multimaps.filterKeys(currentProtoIndex.getPackageDependencies(),
+            pkg -> protoPackages.contains(pkg)).values()
+            .stream()
+            .map(path -> schemaFile(path, currentProtoIndex.getProtoLocations().get(path)));
       }
 
       @Override
       public ImmutableMap<String, SchemaVersion> allPackageVersions(final long snapshotVersion) {
         Preconditions.checkState(state.get() == TxState.OPEN);
-        ProtoIndex currentProtoIndex = protoIndex;
-        if (snapshotVersion != indexGeneration) {
-          currentProtoIndex = ProtoIndex.parse(indexFile.contentForGeneration(snapshotVersion));
-        }
-        return ImmutableMap.copyOf(currentProtoIndex.getPackageVersions());
+        return ImmutableMap.copyOf(protoIndex(snapshotVersion).getPackageVersions());
       }
 
       @Override
       public long commit() {
-        Preconditions.checkState(state.compareAndSet(TxState.OPEN, TxState.COMMITED));
+        Preconditions.checkState(state.compareAndSet(TxState.OPEN, TxState.COMMITTED));
         return indexFile.replace(protoIndex.toByteArray());
       }
 
@@ -143,6 +157,19 @@ public class GcsSchemaStorage implements SchemaStorage {
       public void close() {
         Preconditions.checkState(state.getAndSet(TxState.CLOSED) != TxState.CLOSED);
         // nothing do to
+      }
+
+      private ProtoIndex protoIndex(final long snapshotVersion) {
+        if (snapshotVersion != indexGeneration) {
+          return ProtoIndex.parse(indexFile.contentForGeneration(snapshotVersion));
+        }
+        return protoIndex;
+      }
+
+      private SchemaFile schemaFile(final Path path, final String hash) {
+        return SchemaFile.create(path,
+            new String(protoStorage.get(HashCode.fromString(hash))
+                .orElseThrow(() -> new RuntimeException("Not found: " + hash)), Charsets.UTF_8));
       }
     };
   }

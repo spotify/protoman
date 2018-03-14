@@ -1,16 +1,23 @@
 package com.spotify.protoman.registry.storage;
 
+
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.TextFormat;
 import com.spotify.protoman.Index;
-import com.spotify.protoman.PackageVersion;
-import com.spotify.protoman.ProtoLocation;
+import com.spotify.protoman.PackageDependency;
 import com.spotify.protoman.Version;
 import com.spotify.protoman.registry.SchemaVersion;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,9 +28,9 @@ public class ProtoIndex {
 
   private static final byte[] EMPTY_INDEX = Index.newBuilder().build().toByteArray();
 
-  private final Map<String, String> protoLocations = Maps.newHashMap();
-  private final Map<String, SchemaVersion> packageVersions = Maps.newHashMap();
-  private final Index index;
+  private final Map<String, String> protoLocations;
+  private final Map<String, SchemaVersion> packageVersions;
+  private final Multimap<String, Path> packageDependencies;
 
   public static ProtoIndex empty() {
     return parse(EMPTY_INDEX);
@@ -39,17 +46,16 @@ public class ProtoIndex {
   }
 
   private ProtoIndex(final Index index) {
-    this.index = index;
-    protoLocations.putAll(index.getProtoLocationList().stream()
-        .collect(Collectors.toMap(
-            p -> p.getPath(), p -> p.getBlobName())));
+    protoLocations = Maps.newHashMap(index.getProtoLocationsMap());
 
-    packageVersions.putAll(index.getPackageVersionList().stream()
-        .collect(Collectors.toMap(
-            p -> p.getPackage(), p -> SchemaVersion.create(
-                p.getVersion().getMajor(),
-                p.getVersion().getMinor(),
-                p.getVersion().getPatch()))));
+    packageVersions = index.getPackageVersionsMap().entrySet().stream()
+        .collect(Collectors.toMap(e -> e.getKey(), e -> toSchemaVersion(e.getValue())));
+
+    packageDependencies = index.getPackageDependeciesList().stream()
+        .collect(Multimaps.toMultimap(
+            PackageDependency::getPackage,
+            packageDependency -> Paths.get(packageDependency.getPath()),
+            HashMultimap::create));
   }
 
   public void updateProtoLocation(final String src, final String dest) {
@@ -64,7 +70,16 @@ public class ProtoIndex {
     packageVersions.put(pkg, version);
   }
 
+  public void updatePackageDependencies(final String pkg, final Set<Path> paths) {
+    packageDependencies.replaceValues(pkg, paths);
+  }
+
+  public ImmutableSetMultimap<String, Path> getPackageDependencies() {
+    return ImmutableSetMultimap.copyOf(packageDependencies);
+  }
+
   public boolean removeProtoLocation(final String pkg) {
+    Objects.requireNonNull(pkg);
     return protoLocations.remove(pkg) != null;
   }
 
@@ -77,25 +92,19 @@ public class ProtoIndex {
   }
 
   public byte[] toByteArray() {
-    final Index.Builder builder = Index.newBuilder(index);
-    builder.clearProtoLocation();
-    protoLocations.entrySet().forEach(e -> builder.addProtoLocation(
-        ProtoLocation.newBuilder()
-            .setPath(e.getKey())
-            .setBlobName(e.getValue())
-            .build()
-    ));
+    final Index.Builder builder = Index.newBuilder();
+    builder.putAllProtoLocations(protoLocations);
 
-    builder.clearPackageVersion();
-    packageVersions.entrySet().forEach(e -> builder.addPackageVersion(
-        PackageVersion.newBuilder()
-            .setPackage(e.getKey())
-            .setVersion(Version.newBuilder()
-                .setMajor(e.getValue().major())
-                .setMinor(e.getValue().minor())
-                .setPatch(e.getValue().patch())
-                .build())
-    ));
+    packageVersions.entrySet().forEach(e -> builder.putPackageVersions(e.getKey(),
+        Version.newBuilder()
+            .setMajor(e.getValue().major())
+            .setMinor(e.getValue().minor())
+            .setPatch(e.getValue().patch())
+            .build()));
+
+    packageDependencies.entries().forEach(e ->
+        builder.addPackageDependecies(PackageDependency.newBuilder()
+            .setPackage(e.getKey()).setPath(e.getValue().toString()).build()));
 
     if (logger.isDebugEnabled()) {
       logger.debug("index: {}", TextFormat.printToString(builder));
@@ -103,4 +112,13 @@ public class ProtoIndex {
 
     return builder.build().toByteArray();
   }
+
+  private static SchemaVersion toSchemaVersion(final Version version) {
+    return SchemaVersion.create(
+        version.getMajor(),
+        version.getMinor(),
+        version.getPatch()
+    );
+  }
+
 }
