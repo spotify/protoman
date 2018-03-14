@@ -4,7 +4,6 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.base.MoreObjects;
 import com.spotify.protoman.descriptor.ProtocDescriptorBuilder;
 import com.spotify.protoman.registry.storage.GcsSchemaStorage;
 import com.spotify.protoman.registry.storage.SchemaStorage;
@@ -30,7 +29,9 @@ public class Main {
         schemaRegistry,
         schemaRegistry
     );
-    final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service).build();
+    final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service)
+        .intercept(new LoggingServerInterceptor())
+        .build();
 
     grpcServer.start();
 
@@ -55,4 +56,5 @@ public class Main {
         ProtocDescriptorBuilder.factoryBuilder().build()
     );
   }
+
 }
