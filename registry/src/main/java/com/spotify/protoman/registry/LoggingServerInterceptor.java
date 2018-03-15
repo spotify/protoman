@@ -8,10 +8,12 @@ import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class LoggingServerInterceptor implements ServerInterceptor {
+
   private static final Logger logger = LoggerFactory.getLogger(LoggingServerInterceptor.class);
 
   @Override
@@ -34,6 +36,12 @@ class LoggingServerInterceptor implements ServerInterceptor {
               public void sendMessage(final RespT message) {
                 logger.debug("sendMessage: {}", format(message));
                 super.sendMessage(message);
+              }
+
+              @Override
+              public void close(final Status status, final Metadata trailers) {
+                logger.debug("Closed. status={} metadata={}", status, trailers);
+                super.close(status, trailers);
               }
             },
             metadata)) {
@@ -67,6 +75,6 @@ class LoggingServerInterceptor implements ServerInterceptor {
   }
 
   public static String format(Object obj) {
-    return obj instanceof Message ? TextFormat.printToString((Message)obj) : "n/a";
+    return obj instanceof Message ? TextFormat.printToString((Message) obj) : "n/a";
   }
 }
