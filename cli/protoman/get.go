@@ -27,11 +27,10 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spotify/protoman/cli/registry"
-	"google.golang.org/grpc"
 )
 
 // Get package from protoman
-func Get(packages []string, path, serverAddr string) error {
+func Get(packages []string, path string, client registry.SchemaRegistryClient) error {
 	// No packages provided, try to find them in .protoman configuration file
 	if len(packages) == 0 {
 		c, err := readConfig()
@@ -59,13 +58,7 @@ func Get(packages []string, path, serverAddr string) error {
 			return errors.Wrap(err, "failed to create package path")
 		}
 	}
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithTimeout(time.Second))
-	if err != nil {
-		return errors.New("unable to connect to registry at " + serverAddr)
-	}
-	defer conn.Close()
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
-	client := registry.NewSchemaRegistryClient(conn)
 	resp, err := client.GetSchema(ctx, &request)
 	if err != nil {
 		return errors.Wrap(err, "failed to get schema(s) from registry")

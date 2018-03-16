@@ -91,9 +91,13 @@ var publishCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
+		if err != nil {
+			exitOnErr(err)
+		}
 		exitOnErr(protoman.Publish(
 			args, cmd.Flag("proto-dir").Value.String(),
-			cmd.Flag("server").Value.String()))
+			client))
 	},
 }
 
@@ -143,7 +147,11 @@ var getCmd = &cobra.Command{
 		return verifyFlags(cmd)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Get(args, cmd.Flag("proto-dir").Value.String(), cmd.Flag("server").Value.String()))
+		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
+		if err != nil {
+			exitOnErr(err)
+		}
+		exitOnErr(protoman.Get(args, cmd.Flag("proto-dir").Value.String(), client))
 	},
 }
 
