@@ -7,4 +7,6 @@ public interface SchemaGetter {
 
   // TODO(staffan): Should allow getting packages at specific versions
   Stream<SchemaFile> getSchemataForPackages(ImmutableList<String> protoPackages);
+
+  Stream<String> getPackageNames();
 }

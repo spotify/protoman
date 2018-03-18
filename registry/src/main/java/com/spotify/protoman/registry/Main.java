@@ -29,7 +29,9 @@ public class Main {
         schemaRegistry,
         schemaRegistry
     );
-    final SchemaProtodocService protodocService = SchemaProtodocService.create();
+    final SchemaProtodocService protodocService = SchemaProtodocService.create(
+        schemaRegistry
+    );
 
     final Server grpcServer = ServerBuilder
         .forPort(GRPC_PORT)

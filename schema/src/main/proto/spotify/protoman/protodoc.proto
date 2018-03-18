@@ -7,4 +7,15 @@ option go_package = "registry";
 option java_multiple_files = true;
 
 service SchemaProtodoc {
+    rpc GetSubPackages(GetSubPackagesRequest) returns (GetSubPackagesResponse) {
+    }
+}
+
+
+message GetSubPackagesRequest {
+    string package_name = 1;
+}
+
+message GetSubPackagesResponse {
+    repeated string sub_package_name = 1;
 }

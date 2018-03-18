@@ -282,6 +282,13 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     return schemaFiles.stream();
   }
 
+  @Override
+  public Stream<String> getPackageNames() {
+    final SchemaStorage.Transaction tx = schemaStorage.open();
+    final long latestSnapshotVersion = tx.getLatestSnapshotVersion();
+    return tx.allPackageVersions(latestSnapshotVersion).keySet().stream();
+  }
+
   @AutoValue
   abstract static class BuildDescriptorsResult {
 
