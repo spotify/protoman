@@ -25,11 +25,18 @@ public class Main {
   public static void main(final String... args) throws IOException {
     final SchemaRegistry schemaRegistry = createSchemaRegistry();
 
-    final SchemaRegistryService service = SchemaRegistryService.create(
+    final SchemaRegistryService registryService = SchemaRegistryService.create(
         schemaRegistry,
         schemaRegistry
     );
-    final Server grpcServer = ServerBuilder.forPort(GRPC_PORT).addService(service)
+    final SchemaProtodocService protodocService = SchemaProtodocService.create(
+        schemaRegistry
+    );
+
+    final Server grpcServer = ServerBuilder
+        .forPort(GRPC_PORT)
+        .addService(registryService)
+        .addService(protodocService)
         .intercept(new LoggingServerInterceptor())
         .build();
 

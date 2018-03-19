@@ -2,9 +2,10 @@ package com.spotify.protoman.descriptor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.DescriptorProtos;
+
+import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.stream.IntStream;
-import javax.annotation.Nullable;
 
 public class MessageDescriptor extends DescriptorBase<DescriptorProtos.DescriptorProto> {
 
