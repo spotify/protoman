@@ -17,19 +17,45 @@ limitations under the License.
 package protoman
 
 import (
+	"context"
+	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spotify/protoman/cli/registry"
 )
 
 // Get package from protoman
-func Get(packageName, path string) error {
-	path = filepath.Join(path, strings.Replace(packageName, ".", "/", -1))
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return errors.Wrap(err, "failed to create package path")
+func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistryClient) error {
+	request := registry.GetSchemaRequest{
+		Request: []*registry.GetSchemaRequest_RequestedPackage{},
 	}
-	// TODO: add gRPC request to actually fetch the dependencies locally
-	return addThirdPartyPackage(path)
+	// Create package directories and append package name to RPC request.
+	for _, p := range packages {
+		request.Request = append(request.Request, &registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg})
+		if err := os.MkdirAll(p.Path, 0755); err != nil {
+			return errors.Wrap(err, "failed to create package path")
+		}
+	}
+
+	// Get schema(s) from registry.
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
+	resp, err := client.GetSchema(ctx, &request)
+	if err != nil {
+		return errors.Wrap(err, "failed to get schema(s) from registry")
+	}
+
+	// Store each proto in proto path.
+	for _, protoFile := range resp.ProtoFile {
+		err := ioutil.WriteFile(
+			filepath.Join(rootPath, protoFile.Path),
+			[]byte(protoFile.Content), 0644)
+		if err != nil {
+			return errors.Wrap(err, "failed to write protofile")
+		}
+	}
+
+	return addThirdPartyPackages(packages...)
 }

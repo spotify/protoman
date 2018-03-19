@@ -25,7 +25,6 @@ import (
 	"github.com/spotify/protoman/cli/path"
 	"github.com/spotify/protoman/cli/registry"
 	"github.com/spotify/protoman/cli/validator"
-	"google.golang.org/grpc"
 )
 
 func formatResponse(err *registry.Error, violations []*registry.ValidationViolation) error {
@@ -41,14 +40,7 @@ func formatResponse(err *registry.Error, violations []*registry.ValidationViolat
 	return nil
 }
 
-func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
-	fmt.Printf("Uploading to %s\n", serverAddr)
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithTimeout(time.Second))
-	if err != nil {
-		return errors.New("unable to connect to registry at " + serverAddr)
-	}
-	defer conn.Close()
-	client := registry.NewSchemaRegistryClient(conn)
+func upload(protoFiles []*registry.ProtoFile, client registry.SchemaRegistryClient) error {
 	request := registry.PublishSchemaRequest{ProtoFile: protoFiles}
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 
@@ -63,16 +55,16 @@ func upload(protoFiles []*registry.ProtoFile, serverAddr string) error {
 Publish list of protoPaths to registry, will resolve local packages
 defined .protoman configuration unless files are supplied.
 */
-func Publish(protoPaths []string, serverAddr string) error {
+func Publish(protoPaths []string, client registry.SchemaRegistryClient) error {
 	if len(protoPaths) == 0 {
 		// No protos provided on command line, will upload local packages defined in .protoman
-		c, err := readConfig()
+		c, err := ReadConfig()
 		if err != nil {
 			return err
 		}
 
-		for _, p := range c.Local {
-			p, err := path.FindProtoFiles(p)
+		for _, pkg := range c.Local {
+			p, err := path.FindProtoFiles(pkg.Path)
 			if err != nil {
 				return err
 			}
@@ -85,7 +77,7 @@ func Publish(protoPaths []string, serverAddr string) error {
 		return validationErr
 	}
 	if len(protos) > 0 {
-		return upload(protos, serverAddr)
+		return upload(protos, client)
 	}
 	return nil
 }
