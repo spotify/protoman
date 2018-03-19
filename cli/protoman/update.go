@@ -27,8 +27,12 @@ import (
 )
 
 // Update all third party packages
-func Update(packages []ProtoPackage, client registry.SchemaRegistryClient) error {
-	for _, p := range packages {
+func Update(client registry.SchemaRegistryClient) error {
+	c, err := readConfig()
+	if err != nil {
+		return err
+	}
+	for _, p := range c.Local {
 		request := registry.GetSchemaRequest{
 			Request: []*registry.GetSchemaRequest_RequestedPackage{
 				&registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg},

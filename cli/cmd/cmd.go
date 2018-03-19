@@ -140,9 +140,10 @@ var updateCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
-		c, err := protoman.ReadConfig()
-		exitOnErr(err)
-		exitOnErr(protoman.Update(c.ThirdParty, client))
+		if err != nil {
+			exitOnErr(err)
+		}
+		exitOnErr(protoman.Update(client))
 	},
 }
 var getCmd = &cobra.Command{

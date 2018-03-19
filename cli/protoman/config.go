@@ -38,7 +38,7 @@ const defaultConfig = ".protoman"
 
 // addLocalPackage to config.
 func addLocalPackage(protoPackage ProtoPackage) error {
-	cfg, err := ReadConfig()
+	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
@@ -55,7 +55,7 @@ func addLocalPackage(protoPackage ProtoPackage) error {
 
 // addThirdPartyPackage to config.
 func addThirdPartyPackages(protoPackages ...ProtoPackage) error {
-	cfg, err := ReadConfig()
+	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func createOnNotExist(err error) error {
 	return err
 }
 
-func ReadConfig() (*config, error) {
+func readConfig() (*config, error) {
 	var c config
 
 	data, err := ioutil.ReadFile(defaultConfig)

@@ -58,7 +58,7 @@ defined .protoman configuration unless files are supplied.
 func Publish(protoPaths []string, client registry.SchemaRegistryClient) error {
 	if len(protoPaths) == 0 {
 		// No protos provided on command line, will upload local packages defined in .protoman
-		c, err := ReadConfig()
+		c, err := readConfig()
 		if err != nil {
 			return err
 		}

@@ -16,7 +16,7 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := ReadConfig()
+	cfg, err := readConfig()
 	if err != nil {
 		t.Error(err)
 	}
@@ -27,7 +27,7 @@ func TestConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err = ReadConfig()
+	cfg, err = readConfig()
 	if err != nil {
 		t.Error(err)
 	}

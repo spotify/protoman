@@ -18,7 +18,7 @@ protoman get -s $SERVER -p $PROTO_ROOT $PACKAGES
 Publish local packages
 
 ```bash
-protoman publish -s $SERVER -p $PROTO_ROOT
+protoman publish -s $SERVER
 ```
 
 .protoman.yaml keep track of local and third party dependencies.
@@ -26,11 +26,12 @@ protoman publish -s $SERVER -p $PROTO_ROOT
 Example content:
 
 ```yaml
+local: []
 third_party:
-- spotify.apa
-- spotify.win
-local:
-- spotify.foobar
+- path: src/main/protos/spotify/awesome
+  pkg: jhaals.awesome
+- path: protos/src/main/winning/jhaals/testing
+  pkg: jhaals.testing
 ```
 
 ### Building
