@@ -21,11 +21,15 @@ public interface SchemaStorage {
 
     void storePackageVersion(String protoPackage, SchemaVersion version);
 
-    void storePackageDependencies(String protoPackage, Set<Path> paths);
+    void storeProtoDependencies(Path path, Set<Path> paths);
 
     Optional<SchemaVersion> getPackageVersion(long snapshotVersion, String protoPackage);
 
-    Stream<SchemaFile> fetchFilesForPackage(long snapshotVersion, List<String> protoPackages);
+    Stream<Path> getDependencies(long snapshotVersion, Path path);
+
+    Stream<Path> protosForPackage(long snapshotVersion, String pkgName);
+
+    SchemaFile schemaFile(long snapshotVersion, Path path);
 
     ImmutableMap<String, SchemaVersion> allPackageVersions(long snapshotVersion);
 
@@ -40,3 +44,52 @@ public interface SchemaStorage {
     void close();
   }
 }
+
+/*
+
+TODO(fredrikd): refactor to something like this
+
+public interface SchemaStorage {
+
+  ReadAndWriteTransaction open();
+
+  ReadOnlyTransaction open(long snapshotVersion);
+
+  long getLatestSnapshotVersion();
+
+  Stream<Long> getSnapshotVersions();
+
+
+  interface ReadOnlyTransaction {
+
+    Stream<SchemaFile> fetchAllFiles();
+
+    Optional<SchemaVersion> getPackageVersion(String pkgName);
+
+    Stream<Path> resolveDependencies(Path path);
+
+    Stream<Path> protosForPackage(String pkgName);
+
+    SchemaFile schemaFile(Path path);
+
+    ImmutableMap<String, SchemaVersion> allPackageVersions();
+  }
+
+
+  interface ReadAndWriteTransaction extends ReadOnlyTransaction, AutoCloseable {
+
+    void storeFile(SchemaFile file);
+
+    void storePackageVersion(String pkgName, SchemaVersion version);
+
+    void storeProtoDependencies(Path path, Set<Path> paths);
+
+    void deleteFile(Path path);
+
+    long commit();
+
+    void close();
+  }
+}
+
+ */

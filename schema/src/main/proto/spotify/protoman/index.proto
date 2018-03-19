@@ -9,17 +9,12 @@ option java_multiple_files = true;
 message Index {
     map<string, string> proto_locations = 1;
     map<string, Version> package_versions = 2;
-    repeated PackageDependency package_dependecies = 3;
+    repeated ProtoDependency proto_dependecies = 3;
 }
 
-message ProtoLocation {
-    string path = 1;
-    string blob_name = 2;
-}
-
-message PackageDependency {
-    string package = 1;
-    string path = 2;
+message ProtoDependency {
+    string proto_path = 1;
+    string dependency_path = 2;
 }
 
 message Version {

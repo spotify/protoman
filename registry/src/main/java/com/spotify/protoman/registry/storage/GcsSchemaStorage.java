@@ -1,22 +1,21 @@
 package com.spotify.protoman.registry.storage;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.cloud.storage.Storage;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimaps;
 import com.google.common.hash.HashCode;
 import com.spotify.protoman.registry.SchemaFile;
 import com.spotify.protoman.registry.SchemaVersion;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +62,7 @@ public class GcsSchemaStorage implements SchemaStorage {
     final ProtoIndex protoIndex = ProtoIndex.parse(indexFile.load());
     long indexGeneration = indexFile.currentGeneration();
 
-    logger.info("Starting transaction from snapshot={}", indexGeneration);
+    logger.debug("Starting transaction from snapshot={}", indexGeneration);
 
     return new Transaction() {
       final AtomicReference<TxState> state = new AtomicReference<>(TxState.OPEN);
@@ -79,15 +78,9 @@ public class GcsSchemaStorage implements SchemaStorage {
       @Override
       public Stream<SchemaFile> fetchAllFiles(final long snapshotVersion) {
         Preconditions.checkState(state.get() == TxState.OPEN);
-        ProtoIndex currentProtoIndex = protoIndex;
-
-        if (snapshotVersion != indexGeneration) {
-          currentProtoIndex = ProtoIndex.parse(indexFile.contentForGeneration(snapshotVersion));
-        }
+        ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
         return currentProtoIndex.getProtoLocations().entrySet().stream()
-            .map(e -> SchemaFile.create(Paths.get(e.getKey()),
-                new String(protoStorage.get(HashCode.fromString(e.getValue()))
-                    .orElseThrow(() -> new RuntimeException("Not found")), Charsets.UTF_8)));
+            .map(e -> schemaFile(Paths.get(e.getKey()), e.getValue()));
       }
 
       @Override
@@ -97,9 +90,9 @@ public class GcsSchemaStorage implements SchemaStorage {
       }
 
       @Override
-      public void storePackageDependencies(final String protoPackage, final Set<Path> paths) {
+      public void storeProtoDependencies(final Path path, final Set<Path> paths) {
         Preconditions.checkState(state.get() == TxState.OPEN);
-        protoIndex.updatePackageDependencies(protoPackage, paths);
+        protoIndex.updateProtoDependencies(path, paths);
       }
 
       @Override
@@ -112,16 +105,26 @@ public class GcsSchemaStorage implements SchemaStorage {
       }
 
       @Override
-      public Stream<SchemaFile> fetchFilesForPackage(final long snapshotVersion,
-                                                     final List<String> protoPackages) {
+      public Stream<Path> protosForPackage(final long snapshotVersion, final String pkgName) {
         Preconditions.checkState(state.get() == TxState.OPEN);
+        ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
+        return currentProtoIndex.getProtoLocations().keySet().stream()
+            .map(Paths::get)
+            .filter(packageFilter(pkgName));
+      }
 
-        final ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
-        final Map<String, String> protoLocations = currentProtoIndex.getProtoLocations();
-        return Multimaps.filterKeys(currentProtoIndex.getPackageDependencies(),
-            pkg -> protoPackages.contains(pkg)).values()
-            .stream()
-            .map(path -> schemaFile(path, protoLocations.get(path.toString())));
+      @Override
+      public Stream<Path> getDependencies(final long snapshotVersion, final Path path) {
+        Preconditions.checkState(state.get() == TxState.OPEN);
+        ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
+        return currentProtoIndex.getProtoDependencies().get(path).stream();
+      }
+
+      @Override
+      public SchemaFile schemaFile(final long snapshotVersion, final Path path) {
+        Preconditions.checkState(state.get() == TxState.OPEN);
+        ProtoIndex currentProtoIndex = protoIndex(snapshotVersion);
+        return SchemaFile.create(path, fileContents(currentProtoIndex, path));
       }
 
       @Override
@@ -133,7 +136,13 @@ public class GcsSchemaStorage implements SchemaStorage {
       @Override
       public long commit() {
         Preconditions.checkState(state.compareAndSet(TxState.OPEN, TxState.COMMITTED));
-        return indexFile.replace(protoIndex.toByteArray());
+
+        final long snapshotVersion = indexFile.replace(protoIndex.toByteArray());
+        logger.info("Committed. snapshotVersion={}", snapshotVersion);
+        if (logger.isDebugEnabled()) {
+          logger.debug("index={}", protoIndex.toProtoString());
+        }
+        return snapshotVersion;
       }
 
       @Override
@@ -160,6 +169,24 @@ public class GcsSchemaStorage implements SchemaStorage {
       public void close() {
         Preconditions.checkState(state.getAndSet(TxState.CLOSED) != TxState.CLOSED);
         // nothing do to
+      }
+
+      private Predicate<Path> packageFilter(final String pkgName) {
+        Objects.requireNonNull(pkgName);
+        final Path pkgPath = Paths.get(pkgName.replaceAll("\\.", "/"));
+        return path -> path.getParent().equals(pkgPath);
+      }
+
+      private String fileContents(final ProtoIndex protoIndex, final Path path) {
+        Objects.requireNonNull(protoIndex);
+        Objects.requireNonNull(path);
+        final String location = protoIndex.getProtoLocations().get(path.toString());
+        if (location == null) {
+          throw new RuntimeException("Location not found: " + path);
+        }
+        final byte[] bytes = protoStorage.get(HashCode.fromString(location)).orElseThrow(
+            () -> new IllegalStateException("Location found. Missing data: " + path));
+        return new String(bytes, UTF_8);
       }
 
       private ProtoIndex protoIndex(final long snapshotVersion) {

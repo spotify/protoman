@@ -1,6 +1,7 @@
 package com.spotify.protoman.registry.storage;
 
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -10,7 +11,7 @@ import com.google.common.collect.Multimaps;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.TextFormat;
 import com.spotify.protoman.Index;
-import com.spotify.protoman.PackageDependency;
+import com.spotify.protoman.ProtoDependency;
 import com.spotify.protoman.Version;
 import com.spotify.protoman.registry.SchemaVersion;
 import java.nio.file.Path;
@@ -19,18 +20,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ProtoIndex {
 
-  private static final Logger logger = LoggerFactory.getLogger(ProtoIndex.class);
-
   private static final byte[] EMPTY_INDEX = Index.newBuilder().build().toByteArray();
 
-  private final Map<String, String> protoLocations;
+  private final Map<String, String> protoLocations; // TODO(fredrikd): <Path, HashCode> ?
   private final Map<String, SchemaVersion> packageVersions;
-  private final Multimap<String, Path> packageDependencies;
+  private final Multimap<Path, Path> protoDependencies;
 
   public static ProtoIndex empty() {
     return parse(EMPTY_INDEX);
@@ -51,10 +48,10 @@ public class ProtoIndex {
     packageVersions = index.getPackageVersionsMap().entrySet().stream()
         .collect(Collectors.toMap(e -> e.getKey(), e -> toSchemaVersion(e.getValue())));
 
-    packageDependencies = index.getPackageDependeciesList().stream()
+    protoDependencies = index.getProtoDependeciesList().stream()
         .collect(Multimaps.toMultimap(
-            PackageDependency::getPackage,
-            packageDependency -> Paths.get(packageDependency.getPath()),
+            protoDependency -> Paths.get(protoDependency.getProtoPath()),
+            protoDependency -> Paths.get(protoDependency.getDependencyPath()),
             HashMultimap::create));
   }
 
@@ -70,12 +67,12 @@ public class ProtoIndex {
     packageVersions.put(pkg, version);
   }
 
-  public void updatePackageDependencies(final String pkg, final Set<Path> paths) {
-    packageDependencies.replaceValues(pkg, paths);
+  public void updateProtoDependencies(final Path proto, final Set<Path> paths) {
+    protoDependencies.replaceValues(proto, paths);
   }
 
-  public ImmutableSetMultimap<String, Path> getPackageDependencies() {
-    return ImmutableSetMultimap.copyOf(packageDependencies);
+  public ImmutableSetMultimap<Path, Path> getProtoDependencies() {
+    return ImmutableSetMultimap.copyOf(protoDependencies);
   }
 
   public boolean removeProtoLocation(final String pkg) {
@@ -91,7 +88,20 @@ public class ProtoIndex {
     return ImmutableMap.copyOf(packageVersions);
   }
 
-  public byte[] toByteArray() {
+  public String toProtoString() {
+    return TextFormat.printToString(toProto());
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("protoLocations", protoLocations)
+        .add("packageVersions", packageVersions)
+        .add("protoDependencies", protoDependencies)
+        .toString();
+  }
+
+  private Index toProto() {
     final Index.Builder builder = Index.newBuilder();
     builder.putAllProtoLocations(protoLocations);
 
@@ -100,17 +110,20 @@ public class ProtoIndex {
             .setMajor(e.getValue().major())
             .setMinor(e.getValue().minor())
             .setPatch(e.getValue().patch())
-            .build()));
+            .build())
+    );
 
-    packageDependencies.entries().forEach(e ->
-        builder.addPackageDependecies(PackageDependency.newBuilder()
-            .setPackage(e.getKey()).setPath(e.getValue().toString()).build()));
+    protoDependencies.entries().forEach(e ->
+        builder.addProtoDependecies(ProtoDependency.newBuilder()
+            .setProtoPath(e.getKey().toString())
+            .setDependencyPath(e.getValue().toString())
+            .build())
+    );
+    return builder.build();
+  }
 
-    if (logger.isDebugEnabled()) {
-      logger.debug("index: {}", TextFormat.printToString(builder));
-    }
-
-    return builder.build().toByteArray();
+  public byte[] toByteArray() {
+    return toProto().toByteArray();
   }
 
   private static SchemaVersion toSchemaVersion(final Version version) {
