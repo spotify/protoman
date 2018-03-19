@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -33,10 +34,11 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd)
+	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd, updateCmd)
 	publishCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
-	rootCmd.PersistentFlags().StringP("proto-dir", "p", "", "Root directory where protos will be stored")
 	getCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+	updateCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+	getCmd.PersistentFlags().StringP("proto-dir", "p", "", "Root directory where protos will be stored")
 }
 
 func exitOnErr(err error) {
@@ -77,8 +79,8 @@ var publishCmd = &cobra.Command{
 	Publish proto defintion file(s) to a protoman registry.
 	Providing no arguments will upload local packages defined in .protoman`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if err := verifyFlags(cmd); err != nil {
-			return err
+		if cmd.Flag("server").Value.String() == "" {
+			return errors.New("--server must be set to the protoman registry")
 		}
 		if len(args) == 0 {
 			return nil
@@ -96,7 +98,7 @@ var publishCmd = &cobra.Command{
 			exitOnErr(err)
 		}
 		exitOnErr(protoman.Publish(
-			args, cmd.Flag("proto-dir").Value.String(),
+			args,
 			client))
 	},
 }
@@ -127,31 +129,51 @@ var genCmd = &cobra.Command{
 	},
 }
 
-func verifyFlags(cmd *cobra.Command) error {
-	if cmd.Flag("server").Value.String() == "" {
-		return errors.New("--server must be set to the protoman registry")
-	}
-	if cmd.Flag("proto-dir").Value.String() == "" {
-		return errors.New("--proto-dir must be specified")
-	}
-	if strings.HasPrefix(cmd.Flag("proto-dir").Value.String(), "/") {
-		return errors.New("Proto dir must be relative to project")
-	}
-	return nil
+var updateCmd = &cobra.Command{
+	Use:   "update",
+	Short: "Update all dependencies",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if cmd.Flag("server").Value.String() == "" {
+			return errors.New("--server must be set to the protoman registry")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
+		c, err := protoman.ReadConfig()
+		exitOnErr(err)
+		exitOnErr(protoman.Update(c.ThirdParty, client))
+	},
 }
-
 var getCmd = &cobra.Command{
 	Use:   "get [package names]",
 	Short: "Get package",
 	Args: func(cmd *cobra.Command, args []string) error {
-		return verifyFlags(cmd)
+		if cmd.Flag("server").Value.String() == "" {
+			return errors.New("--server must be set to the protoman registry")
+		}
+		if cmd.Flag("proto-dir").Value.String() == "" {
+			return errors.New("--proto-dir must be specified")
+		}
+		if len(args) == 0 {
+			return errors.New("at least one package name must be specified")
+		}
+		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		path := cmd.Flag("proto-dir").Value.String()
 		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
 		if err != nil {
 			exitOnErr(err)
 		}
-		exitOnErr(protoman.Get(args, cmd.Flag("proto-dir").Value.String(), client))
+		var packages []protoman.ProtoPackage
+		for _, pkg := range args {
+			packages = append(packages, protoman.ProtoPackage{
+				Path: filepath.Join(path, strings.Replace(pkg, ".", "/", -1)),
+				Pkg:  pkg,
+			})
+		}
+		exitOnErr(protoman.Get(packages, path, client))
 	},
 }
 

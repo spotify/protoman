@@ -18,11 +18,9 @@ package protoman
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -30,34 +28,19 @@ import (
 )
 
 // Get package from protoman
-func Get(packages []string, path string, client registry.SchemaRegistryClient) error {
-	// No packages provided, try to find them in .protoman configuration file
-	if len(packages) == 0 {
-		c, err := readConfig()
-		if err != nil {
-			return err
-		}
-
-		for _, pkg := range c.ThirdParty {
-			packages = append(packages, pkg)
-		}
-	}
-
-	if len(packages) == 0 {
-		return fmt.Errorf("No packages provided on command line or in .protoman configuration")
-	}
-
+func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistryClient) error {
 	request := registry.GetSchemaRequest{
 		Request: []*registry.GetSchemaRequest_RequestedPackage{},
 	}
 	// Create package directories and append package name to RPC request.
-	for _, packageName := range packages {
-		request.Request = append(request.Request, &registry.GetSchemaRequest_RequestedPackage{Package: packageName})
-		pkgPath := filepath.Join(path, strings.Replace(packageName, ".", "/", -1))
-		if err := os.MkdirAll(pkgPath, 0755); err != nil {
+	for _, p := range packages {
+		request.Request = append(request.Request, &registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg})
+		if err := os.MkdirAll(p.Path, 0755); err != nil {
 			return errors.Wrap(err, "failed to create package path")
 		}
 	}
+
+	// Get schema(s) from registry.
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 	resp, err := client.GetSchema(ctx, &request)
 	if err != nil {
@@ -67,17 +50,12 @@ func Get(packages []string, path string, client registry.SchemaRegistryClient) e
 	// Store each proto in proto path.
 	for _, protoFile := range resp.ProtoFile {
 		err := ioutil.WriteFile(
-			filepath.Join(path, protoFile.Path),
+			filepath.Join(rootPath, protoFile.Path),
 			[]byte(protoFile.Content), 0644)
 		if err != nil {
 			return errors.Wrap(err, "failed to write protofile")
 		}
 	}
-	// Add packages to .protoman
-	for _, packageName := range packages {
-		if err := addThirdPartyPackage(packageName); err != nil {
-			return err
-		}
-	}
-	return nil
+
+	return addThirdPartyPackages(packages...)
 }

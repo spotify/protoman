@@ -32,7 +32,7 @@ func mockClient() registry.SchemaRegistryClient {
 
 func TestGet(t *testing.T) {
 
-	Get([]string{"spotify.foobar"}, "test-dir", mockClient())
+	Get([]ProtoPackage{ProtoPackage{Pkg: "spotify.foobar", Path: "test-dir/spotify/foobar/foobar"}}, "test-dir", mockClient())
 	defer os.RemoveAll("test-dir")
 	defer os.Remove(".protoman")
 	c, err := readConfig()
