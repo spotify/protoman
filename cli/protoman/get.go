@@ -29,17 +29,23 @@ import (
 
 // Get package from protoman
 func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistryClient) error {
-	request := registry.GetSchemaRequest{
-		Request: []*registry.GetSchemaRequest_RequestedPackage{},
-	}
-	// Create package directories and append package name to RPC request.
 	for _, p := range packages {
-		request.Request = append(request.Request, &registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg})
-		if err := os.MkdirAll(p.Path, 0755); err != nil {
-			return errors.Wrap(err, "failed to create package path")
+		if err := getPackage(client, p); err != nil {
+			return err
+		}
+		if err := addThirdPartyPackage(p); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
+func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
+	request := registry.GetSchemaRequest{
+		Request: []*registry.GetSchemaRequest_RequestedPackage{
+			&registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg},
+		},
+	}
 	// Get schema(s) from registry.
 	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
 	resp, err := client.GetSchema(ctx, &request)
@@ -47,15 +53,19 @@ func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistr
 		return errors.Wrap(err, "failed to get schema(s) from registry")
 	}
 
-	// Store each proto in proto path.
+	// Store each proto in package path
 	for _, protoFile := range resp.ProtoFile {
-		err := ioutil.WriteFile(
-			filepath.Join(rootPath, protoFile.Path),
+		if err := os.MkdirAll(filepath.Join(p.Path, filepath.Dir(protoFile.Path)), 0755); err != nil {
+			return errors.Wrap(err, "failed to create package path")
+		}
+		path := filepath.Join(
+			filepath.Join(p.Path, filepath.Dir(protoFile.Path)),
+			filepath.Base(protoFile.Path))
+		err := ioutil.WriteFile(path,
 			[]byte(protoFile.Content), 0644)
 		if err != nil {
 			return errors.Wrap(err, "failed to write protofile")
 		}
 	}
-
-	return addThirdPartyPackages(packages...)
+	return nil
 }

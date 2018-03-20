@@ -54,21 +54,21 @@ func addLocalPackage(protoPackage ProtoPackage) error {
 }
 
 // addThirdPartyPackage to config.
-func addThirdPartyPackages(protoPackages ...ProtoPackage) error {
+func addThirdPartyPackage(protoPackage ProtoPackage) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
 
-	for _, pkg := range protoPackages {
-		for _, p := range cfg.ThirdParty {
-			if p.Pkg == pkg.Pkg {
-				// Package already exist in configuraion
-				continue
-			}
+	for _, p := range cfg.ThirdParty {
+		if p.Pkg == protoPackage.Pkg {
+			// Package already exist in configuraion
+			return nil
 		}
-		cfg.ThirdParty = append(cfg.ThirdParty, pkg)
 	}
+	// TODO: fix this
+	cfg.ThirdParty = append(cfg.ThirdParty, protoPackage)
+
 	return writeConfig(cfg)
 }
 

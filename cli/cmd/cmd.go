@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -170,7 +169,7 @@ var getCmd = &cobra.Command{
 		var packages []protoman.ProtoPackage
 		for _, pkg := range args {
 			packages = append(packages, protoman.ProtoPackage{
-				Path: filepath.Join(path, strings.Replace(pkg, ".", "/", -1)),
+				Path: path,
 				Pkg:  pkg,
 			})
 		}

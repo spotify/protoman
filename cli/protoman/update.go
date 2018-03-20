@@ -17,12 +17,6 @@ limitations under the License.
 package protoman
 
 import (
-	"context"
-	"io/ioutil"
-	"path/filepath"
-	"time"
-
-	"github.com/pkg/errors"
 	"github.com/spotify/protoman/cli/registry"
 )
 
@@ -32,27 +26,9 @@ func Update(client registry.SchemaRegistryClient) error {
 	if err != nil {
 		return err
 	}
-	for _, p := range c.Local {
-		request := registry.GetSchemaRequest{
-			Request: []*registry.GetSchemaRequest_RequestedPackage{
-				&registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg},
-			},
-		}
-		// Get schema(s) from registry.
-		ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
-		resp, err := client.GetSchema(ctx, &request)
-		if err != nil {
-			return errors.Wrap(err, "failed to get schema(s) from registry")
-		}
-
-		// Store each proto in package path
-		for _, protoFile := range resp.ProtoFile {
-			err := ioutil.WriteFile(
-				filepath.Join(p.Path, filepath.Base(protoFile.Path)),
-				[]byte(protoFile.Content), 0644)
-			if err != nil {
-				return errors.Wrap(err, "failed to write protofile")
-			}
+	for _, p := range c.ThirdParty {
+		if err := getPackage(client, p); err != nil {
+			return err
 		}
 	}
 	return nil
