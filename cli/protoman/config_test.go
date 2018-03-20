@@ -8,11 +8,11 @@ import (
 func TestConfig(t *testing.T) {
 	defer os.Remove(".protoman")
 
-	err := addThirdPartyPackages(ProtoPackage{Pkg: "test.foobar", Path: "src/main/proto/test/foobar"})
+	err := addThirdPartyPackage(ProtoPackage{Pkg: "test.foobar", Path: "src/main/proto/test/foobar"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = addThirdPartyPackages(ProtoPackage{Pkg: "test.winning", Path: "src/main/proto/test/winning"})
+	err = addThirdPartyPackage(ProtoPackage{Pkg: "test.winning", Path: "src/main/proto/test/winning"})
 	if err != nil {
 		t.Fatal(err)
 	}
