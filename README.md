@@ -1,4 +1,5 @@
 # Protoman
+[![Build Status](https://travis-ci.org/spotify/protoman.svg?branch=master)](https://travis-ci.org/spotify/protoman)
 
 **NOTICE**: This is still in the planning phase and under active development. Protoman should **not** be used in production, yet.
 
