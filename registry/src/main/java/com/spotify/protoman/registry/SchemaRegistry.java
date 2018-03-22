@@ -1,6 +1,5 @@
 package com.spotify.protoman.registry;
 
-import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -8,6 +7,7 @@ import com.google.auto.value.AutoValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.protobuf.DescriptorProtos;
 import com.spotify.protoman.descriptor.DescriptorBuilder;
 import com.spotify.protoman.descriptor.DescriptorBuilderException;
@@ -19,7 +19,6 @@ import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -89,18 +88,19 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
       // Store files, but only for protos that changed
       updatedFiles(schemaFiles.stream(), currentDs, candidateDs)
-          .forEach(file -> tx.storeFile(file));
+          .forEach(file -> {
+            final ImmutableSet<Path> dependencies =
+                candidateDs.findFileByPath(file.path()).get().dependencies().stream()
+                    .map(FileDescriptor::filePath)
+                    .collect(toImmutableSet());
+            logger.debug("proto: {}, deps: {}", file.path(), dependencies);
+            tx.storeFile(file);
+            tx.storeProtoDependencies(file.path(), dependencies);
+          });
 
       // Update package versions (only for packages that have changed)
       final ImmutableMap<String, SchemaVersionPair> publishedPackages =
           updatePackageVersions(tx, currentDs, candidateDs);
-
-      // Update proto file dependencies for published packages
-      publishedPackages.keySet().forEach(pkgName -> {
-        final Set<Path> dependencies = resolvePackageDependencies(pkgName, candidateDs);
-        logger.debug("pkgName: {}, deps: {}", pkgName, dependencies);
-        tx.storePackageDependencies(pkgName, dependencies);
-      });
 
       tx.commit();
 
@@ -110,21 +110,50 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     }
   }
 
+  private ImmutableSet<Path> resolveDependencies(final SchemaStorage.Transaction tx,
+                                                 final long snapshotVersion,
+                                                 final ImmutableSet<Path> paths) {
+
+    final Set<Path> resultPaths = Sets.newHashSet();
+    final Set<Path> resolvedPaths = Sets.newHashSet();
+    final Queue<Path> q = new ArrayDeque<>();
+    q.addAll(paths);
+
+    while (!q.isEmpty()) {
+      final Path path = q.poll();
+      if (resolvedPaths.add(path)) {
+        resultPaths.add(path);
+        final ImmutableSet<Path> deps = tx.getDependencies(snapshotVersion, path)
+            .collect(toImmutableSet());
+        q.addAll(deps);
+        logger.debug("deps path={} deps={}", path, deps);
+      }
+    }
+    return ImmutableSet.copyOf(resultPaths);
+  }
+
   private BuildDescriptorsResult buildDescriptorSets(final SchemaStorage.Transaction tx,
                                                      final ImmutableList<SchemaFile> schemaFiles)
       throws DescriptorBuilderException {
+
+    final long snapshotVersion = tx.getLatestSnapshotVersion();
+
     // Paths of all updated files
     final ImmutableSet<Path> updatedPaths = schemaFiles.stream()
         .map(SchemaFile::path)
         .collect(toImmutableSet());
 
+    final ImmutableSet<Path> updatedAndDependencies = resolveDependencies(tx,
+        snapshotVersion, updatedPaths);
+
     try (final DescriptorBuilder descriptorBuilder =
              descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with all files from registry
       // Builder DescriptorSet for what is currently in the registry for the files being updated
-      final long snapshotVersion = tx.getLatestSnapshotVersion();
+
       final ImmutableMap<Path, SchemaFile> currentSchemata =
-          tx.fetchAllFiles(snapshotVersion)
+          updatedAndDependencies.stream()
+              .map(path -> tx.schemaFile(snapshotVersion, path))
               .collect(toImmutableMap(SchemaFile::path, Function.identity()));
 
       for (SchemaFile file : currentSchemata.values()) {
@@ -133,6 +162,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
       // NOTE(staffan): As it is right now, we need compile ALL descriptors to catch breaking
       // changes.
+      // NOTE(fredrikd): Not compiling all any more, but keeping this message until
+      // tests are added
       //
       // Consider the case where the following files exists in the repository:
       //
@@ -274,9 +305,18 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
   public Stream<SchemaFile> getSchemataForPackages(final ImmutableList<String> protoPackages) {
     final List<SchemaFile> schemaFiles;
     try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-      final long latestSnapshotVersion = tx.getLatestSnapshotVersion();
-      // Have to materialize inside the tx :/
-      schemaFiles = tx.fetchFilesForPackage(latestSnapshotVersion, protoPackages)
+      final long snapshotVersion = tx.getLatestSnapshotVersion();
+
+      final ImmutableSet<Path> protoPaths = protoPackages.stream()
+          .flatMap(protoPackage -> tx.protosForPackage(snapshotVersion, protoPackage))
+          .collect(toImmutableSet());
+
+      logger.debug("deps pkgs={}, initial={}", protoPackages, protoPaths);
+      final ImmutableSet<Path> dependencies = resolveDependencies(tx, snapshotVersion, protoPaths);
+      logger.debug("dependencies={}", dependencies);
+
+      schemaFiles = dependencies.stream()
+          .map(path -> tx.schemaFile(snapshotVersion, path))
           .collect(Collectors.toList());
     }
     return schemaFiles.stream();
@@ -292,13 +332,17 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
   @AutoValue
   abstract static class BuildDescriptorsResult {
 
-    @Nullable abstract DescriptorSet current();
+    @Nullable
+    abstract DescriptorSet current();
 
-    @Nullable abstract DescriptorSet candidate();
+    @Nullable
+    abstract DescriptorSet candidate();
 
-    @Nullable abstract String currentCompilationError();
+    @Nullable
+    abstract String currentCompilationError();
 
-    @Nullable abstract String candidateCompilationError();
+    @Nullable
+    abstract String candidateCompilationError();
 
     static BuildDescriptorsResult create(
         @Nullable final DescriptorSet current,
@@ -312,33 +356,5 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
           candidateCompilationError
       );
     }
-  }
-
-  private static Set<Path> resolvePackageDependencies(final String pkgName,
-                                                      final DescriptorSet descriptorSet) {
-    // Build a dependency map
-    final ImmutableMap<Path, FileDescriptor> fileDescriptorMap =
-        descriptorSet.fileDescriptors().stream()
-            .collect(toImmutableMap(FileDescriptor::filePath, Function.identity()));
-
-    // Resolve dependencies
-    final Set<Path> paths = new HashSet<>();
-    final Queue<Path> q = new ArrayDeque<>();
-    // Get all the files for the requested package
-    final ImmutableList<Path> pathsForRequestedPackages = descriptorSet.fileDescriptors()
-        .stream()
-        .filter(fileDescriptor -> pkgName.equals(fileDescriptor.protoPackage()))
-        .map(FileDescriptor::filePath)
-        .collect(toImmutableList());
-    q.addAll(pathsForRequestedPackages);
-    while (!q.isEmpty()) {
-      final Path path = q.poll();
-      paths.add(path);
-      fileDescriptorMap.get(path).dependencies().stream()
-          .map(FileDescriptor::filePath)
-          .filter(p -> !paths.contains(p))
-          .forEach(q::add);
-    }
-    return paths;
   }
 }

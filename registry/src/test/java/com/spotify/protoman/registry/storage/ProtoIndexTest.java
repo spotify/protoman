@@ -29,7 +29,7 @@ public class ProtoIndexTest {
 
     assertThat(parsed.getPackageVersions(), equalTo(empty.getPackageVersions()));
     assertThat(parsed.getProtoLocations(), equalTo(empty.getProtoLocations()));
-    assertThat(parsed.getPackageDependencies(), equalTo(empty.getPackageDependencies()));
+    assertThat(parsed.getProtoDependencies(), equalTo(empty.getProtoDependencies()));
   }
 
   @Test
@@ -70,20 +70,21 @@ public class ProtoIndexTest {
   }
 
   @Test
-  public void updatePackageDependencies() {
+  public void updateProtoDependencies() {
     final Path path1 = Paths.get("/pkg1/proto1.proto");
     final Path path2 = Paths.get("/pkg2/proto2.proto");
+    final Path path3 = Paths.get("/pkg3/proto3.proto");
 
     final ProtoIndex protoIndex = ProtoIndex.empty();
-    protoIndex.updatePackageDependencies("pkg1", ImmutableSet.of(path1, path2));
-    protoIndex.updatePackageDependencies("pkg2", ImmutableSet.of(path2));
+    protoIndex.updateProtoDependencies(path1, ImmutableSet.of(path1, path2));
+    protoIndex.updateProtoDependencies(path2, ImmutableSet.of(path3));
 
     final ProtoIndex after = ProtoIndex.parse(protoIndex.toByteArray());
 
-    assertThat(after.getPackageDependencies(), equalTo(ImmutableSetMultimap.of(
-        "pkg1", path1,
-        "pkg1", path2,
-        "pkg2", path2
+    assertThat(after.getProtoDependencies(), equalTo(ImmutableSetMultimap.of(
+        path1, path1,
+        path1, path2,
+        path2, path3
     )));
   }
 
