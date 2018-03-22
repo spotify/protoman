@@ -168,8 +168,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
     try (final DescriptorBuilder descriptorBuilder =
              descriptorBuilderFactory.newDescriptorBuilder()) {
-      // Seed descriptor builder with all files from registry
-      // Builder DescriptorSet for what is currently in the registry for the files being updated
+      // Seed descriptor builder with previous versions of all files and their dependencies
 
       final ImmutableMap<Path, SchemaFile> currentSchemata =
           updatedAndDependencies.stream()
