@@ -8,3 +8,6 @@ matrix:
         - dep ensure
       script:
         - go test -v ./...
+    - language: java
+      script:
+        - mvn test
