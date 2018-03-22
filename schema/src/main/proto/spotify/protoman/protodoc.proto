@@ -2,12 +2,18 @@ syntax = "proto3";
 
 package spotify.protoman;
 
+import "google/api/annotations.proto";
+
 option java_package = "com.spotify.protoman";
 option go_package = "registry";
 option java_multiple_files = true;
 
 service SchemaProtodoc {
     rpc GetSubPackages(GetSubPackagesRequest) returns (GetSubPackagesResponse) {
+        option (google.api.http) = {
+            post: "/v1/subpackages"
+            body: "*"
+        };
     }
 }
 
