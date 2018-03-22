@@ -1,0 +1,11 @@
+matrix:
+  include:
+    - language: go
+      go:
+        - "1.10.x"
+      before_install:
+        - cd cli/
+        - go get -u github.com/golang/dep/cmd/dep
+        - dep ensure
+      script:
+        - go test -v ./...
