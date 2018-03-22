@@ -9,5 +9,11 @@ matrix:
       script:
         - go test -v ./...
     - language: java
+      before_install:
+        - apt-get update -qq
+        - apt-get -qq install -y software-properties-common
+        - add-apt-repository -y ppa:maarten-fonville/protobuf
+        - apt-get update -qq
+        - apt-get install -y protobuf-compiler
       script:
         - mvn test
