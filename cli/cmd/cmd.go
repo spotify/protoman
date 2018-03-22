@@ -33,11 +33,12 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd, updateCmd)
+	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd, updateCmd, addCmd)
 	publishCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	getCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	updateCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	getCmd.PersistentFlags().StringP("proto-dir", "p", "", "Root directory where protos will be stored")
+	addCmd.PersistentFlags().StringP("path", "p", "", "Path to package")
 }
 
 func exitOnErr(err error) {
@@ -60,7 +61,7 @@ var validateCmd = &cobra.Command{
 	Short: "Validate proto defintion file(s)",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
-			return errors.New("Path required")
+			return errors.New("path required")
 		}
 		return nil
 	},
@@ -68,6 +69,30 @@ var validateCmd = &cobra.Command{
 		if _, err := os.Stat(args[0]); err == nil {
 			exitOnErr(validator.Validate(args[0]))
 		}
+	},
+}
+
+var addCmd = &cobra.Command{
+	Use:   "add [package name]",
+	Short: "Add package to .protoman",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("package name required")
+		}
+		if cmd.Flag("path").Value.String() == "" {
+			return errors.New("You must specify package --path")
+		}
+		f, err := os.Stat(cmd.Flag("path").Value.String())
+		if err != nil {
+			return err
+		}
+		if !f.IsDir() {
+			return errors.New("path must be a directory")
+		}
+		return nil
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		exitOnErr(protoman.Add(args[0], cmd.Flag("path").Value.String()))
 	},
 }
 

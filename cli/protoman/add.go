@@ -17,18 +17,14 @@ limitations under the License.
 package protoman
 
 import (
-	"time"
-
-	"github.com/pkg/errors"
-	"github.com/spotify/protoman/cli/registry"
-	"google.golang.org/grpc"
+	"fmt"
+	"strings"
 )
 
-//NewRegistryClient returns a new registry client.
-func NewRegistryClient(serverAddr string) (registry.SchemaRegistryClient, error) {
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithTimeout(time.Second))
-	if err != nil {
-		return nil, errors.New("unable to connect to registry at " + serverAddr)
+// Add protoman schema to config file
+func Add(packageName, path string) error {
+	if !strings.HasSuffix(path, strings.Replace(packageName, ".", "/", -1)) {
+		return fmt.Errorf("package name does not match path, expected path to end with %s", path)
 	}
-	return registry.NewSchemaRegistryClient(conn), nil
+	return addLocalPackage(ProtoPackage{Pkg: packageName, Path: path})
 }
