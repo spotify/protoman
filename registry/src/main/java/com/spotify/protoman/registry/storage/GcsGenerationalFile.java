@@ -28,9 +28,14 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.common.base.Preconditions;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+
+/**
+ * Helper class that represents a versioned file in GCS with optimistic locking semantics
+ */
 public class GcsGenerationalFile {
 
   private static final int GCS_PRECONDITION_FAILED_CODE = 412;
@@ -38,7 +43,7 @@ public class GcsGenerationalFile {
   private final Storage storage;
   private final String bucket;
   private final String path;
-  private Long generation;
+  private AtomicLong generation;
 
   private GcsGenerationalFile(final Storage storage,
                               final String bucket,
@@ -47,6 +52,8 @@ public class GcsGenerationalFile {
     this.storage = Objects.requireNonNull(storage);
     this.bucket = Objects.requireNonNull(bucket);
     this.path = Objects.requireNonNull(path);
+
+    generation = new AtomicLong();
   }
 
   public static GcsGenerationalFile create(final Storage storage,
@@ -78,17 +85,25 @@ public class GcsGenerationalFile {
     return false;
   }
 
+  /**
+   * Replace the contents of the file iff it has not been modified by anyone else since it was
+   * loaded
+   *
+   * @return the new generation of the file
+   *
+   * @throws OptimisticLockingException if the underlying file content has been modified
+   */
   public long replace(byte[] bytes) {
-    Preconditions.checkState(generation != null, "File is not loaded.");
+    Preconditions.checkState(generation.get() != 0L, "File is not loaded.");
 
     try {
       final Blob blob = storage.create(
-          BlobInfo.newBuilder(bucket, path, generation).build(),
+          BlobInfo.newBuilder(bucket, path, generation.get()).build(),
           bytes,
           Storage.BlobTargetOption.generationMatch()
       );
-      generation = blob.getGeneration();
-      return generation;
+      generation.set(blob.getGeneration());
+      return generation.get();
     } catch (StorageException ex) {
       // allow precondition failed, which means we already have a file
       if (ex.getCode() != GCS_PRECONDITION_FAILED_CODE) {
@@ -103,7 +118,7 @@ public class GcsGenerationalFile {
     if (blob == null) {
       throw new NotFoundException("File not found.");
     }
-    generation = blob.getGeneration();
+    generation.set(blob.getGeneration());
     return blob.getContent();
   }
 
@@ -116,9 +131,9 @@ public class GcsGenerationalFile {
   }
 
   public long currentGeneration() {
-    Preconditions.checkState(generation != null, "File is not loaded.");
+    Preconditions.checkState(generation.get() != 0L, "File is not loaded.");
 
-    return generation;
+    return generation.get();
   }
 
   public Stream<Long> listGenerations() {
@@ -128,11 +143,9 @@ public class GcsGenerationalFile {
         Storage.BlobListOption.versions(true)
     );
 
-    final Iterable<Blob> blobIterable = () -> blobPage.iterateAll().iterator();
-
-    return StreamSupport.stream(blobIterable.spliterator(), false)
+    return StreamSupport.stream(blobPage.iterateAll().spliterator(), false)
         .filter(b -> b.getName().equals(path))
-        .map(b -> b.getGeneration());
+        .map(Blob::getGeneration);
   }
 
   public static class NotFoundException extends RuntimeException {

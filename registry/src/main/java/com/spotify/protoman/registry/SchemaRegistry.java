@@ -20,6 +20,7 @@
 
 package com.spotify.protoman.registry;
 
+import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
@@ -34,19 +35,19 @@ import com.spotify.protoman.descriptor.DescriptorBuilderException;
 import com.spotify.protoman.descriptor.DescriptorSet;
 import com.spotify.protoman.descriptor.FileDescriptor;
 import com.spotify.protoman.registry.storage.SchemaStorage;
+import com.spotify.protoman.registry.storage.SchemaStorage.ReadAndWriteTransaction;
+import com.spotify.protoman.registry.storage.SchemaStorage.ReadOnlyTransaction;
 import com.spotify.protoman.validation.SchemaValidator;
 import com.spotify.protoman.validation.ValidationViolation;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -82,7 +83,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
   @Override
   public PublishResult publishSchemata(final ImmutableList<SchemaFile> schemaFiles) {
-    try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       final BuildDescriptorsResult buildDescriptorsResult = buildDescriptorSets(tx, schemaFiles);
 
       if (buildDescriptorsResult.currentCompilationError() != null) {
@@ -130,8 +131,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     }
   }
 
-  private ImmutableSet<Path> resolveDependencies(final SchemaStorage.Transaction tx,
-                                                 final long snapshotVersion,
+  private ImmutableSet<Path> resolveDependencies(final ReadOnlyTransaction tx,
                                                  final ImmutableSet<Path> paths) {
 
     final Set<Path> resultPaths = Sets.newHashSet();
@@ -143,7 +143,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       final Path path = q.poll();
       if (resolvedPaths.add(path)) {
         resultPaths.add(path);
-        final ImmutableSet<Path> deps = tx.getDependencies(snapshotVersion, path)
+        final ImmutableSet<Path> deps = tx.getDependencies(path)
             .collect(toImmutableSet());
         q.addAll(deps);
         logger.debug("deps path={} deps={}", path, deps);
@@ -152,19 +152,16 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     return ImmutableSet.copyOf(resultPaths);
   }
 
-  private BuildDescriptorsResult buildDescriptorSets(final SchemaStorage.Transaction tx,
+  private BuildDescriptorsResult buildDescriptorSets(final ReadOnlyTransaction tx,
                                                      final ImmutableList<SchemaFile> schemaFiles)
       throws DescriptorBuilderException {
-
-    final long snapshotVersion = tx.getLatestSnapshotVersion();
 
     // Paths of all updated files
     final ImmutableSet<Path> updatedPaths = schemaFiles.stream()
         .map(SchemaFile::path)
         .collect(toImmutableSet());
 
-    final ImmutableSet<Path> updatedAndDependencies = resolveDependencies(tx,
-        snapshotVersion, updatedPaths);
+    final ImmutableSet<Path> updatedAndDependencies = resolveDependencies(tx, updatedPaths);
 
     try (final DescriptorBuilder descriptorBuilder =
              descriptorBuilderFactory.newDescriptorBuilder()) {
@@ -172,7 +169,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
       final ImmutableMap<Path, SchemaFile> currentSchemata =
           updatedAndDependencies.stream()
-              .map(path -> tx.schemaFile(snapshotVersion, path))
+              .map(path -> tx.schemaFile(path))
               .collect(toImmutableMap(SchemaFile::path, Function.identity()));
 
       for (SchemaFile file : currentSchemata.values()) {
@@ -259,7 +256,7 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
   }
 
   private ImmutableMap<String, SchemaVersionPair> updatePackageVersions(
-      final SchemaStorage.Transaction tx,
+      final ReadAndWriteTransaction tx,
       final DescriptorSet currentDs,
       final DescriptorSet candidateDs) {
     // Which packages are touched by the updated files?
@@ -270,10 +267,8 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
     final Map<String, SchemaVersionPair> publishedPackages = new HashMap<>();
 
     // Update versions
-    long snapshotVersion = tx.getLatestSnapshotVersion();
     touchedPackages.forEach(protoPackage -> {
       final Optional<SchemaVersion> currentVersion = tx.getPackageVersion(
-          snapshotVersion,
           protoPackage
       );
       final SchemaVersion candidateVersion = schemaVersioner.determineVersion(
@@ -322,30 +317,28 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
   @Override
   public Stream<SchemaFile> getSchemataForPackages(final ImmutableList<String> protoPackages) {
-    final List<SchemaFile> schemaFiles;
-    try (final SchemaStorage.Transaction tx = schemaStorage.open()) {
-      final long snapshotVersion = tx.getLatestSnapshotVersion();
+    final ImmutableList<SchemaFile> schemaFiles;
+    try (final ReadOnlyTransaction tx = schemaStorage.open()) {
 
       final ImmutableSet<Path> protoPaths = protoPackages.stream()
-          .flatMap(protoPackage -> tx.protosForPackage(snapshotVersion, protoPackage))
+          .flatMap(protoPackage -> tx.protosForPackage(protoPackage))
           .collect(toImmutableSet());
 
       logger.debug("deps pkgs={}, initial={}", protoPackages, protoPaths);
-      final ImmutableSet<Path> dependencies = resolveDependencies(tx, snapshotVersion, protoPaths);
+      final ImmutableSet<Path> dependencies = resolveDependencies(tx, protoPaths);
       logger.debug("dependencies={}", dependencies);
 
       schemaFiles = dependencies.stream()
-          .map(path -> tx.schemaFile(snapshotVersion, path))
-          .collect(Collectors.toList());
+          .map(path -> tx.schemaFile(path))
+          .collect(toImmutableList());
     }
     return schemaFiles.stream();
   }
 
   @Override
   public Stream<String> getPackageNames() {
-    final SchemaStorage.Transaction tx = schemaStorage.open();
-    final long latestSnapshotVersion = tx.getLatestSnapshotVersion();
-    return tx.allPackageVersions(latestSnapshotVersion).keySet().stream();
+    final ReadOnlyTransaction tx = schemaStorage.open();
+    return tx.allPackageVersions().keySet().stream();
   }
 
   @AutoValue
