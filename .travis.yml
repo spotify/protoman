@@ -1,19 +1,40 @@
 matrix:
   include:
-    - language: go
-      go: "1.10"
-      before_install:
-        - cd cli/
-        - go get -u github.com/golang/dep/cmd/dep
-        - dep ensure
-      script:
-        - go test -v ./...
-    - language: java
-      before_install:
-        - sudo apt-get update -qq
-        - sudo apt-get -qq install -y software-properties-common
-        - sudo add-apt-repository -y ppa:maarten-fonville/protobuf
-        - sudo apt-get update -qq
-        - sudo apt-get install -y protobuf-compiler
-      script:
-        - mvn test
+  - language: go
+    go: '1.10'
+    before_install:
+    - cd cli/
+    - go get -u github.com/golang/dep/cmd/dep
+    - dep ensure
+    script:
+    - go test -v ./...
+    before_deploy:
+      - cd cli/
+      - |
+        platforms=(darwin/amd64 linux/amd64)
+        for p in "${platforms[@]}"; do
+            echo "Building $p"
+            GOOS=${p%/*}
+            GOARCH=${p#*/}
+            GOOS=$GOOS GOARCH=$GOARCH go build -o dist/protoman
+            (cd dist;zip protoman-${GOOS}-${GOARCH}.zip protoman)
+        done;
+    deploy:
+      provider: releases
+      api_key:
+        secure: gXJoCSS0P6ehw4Jmr/3AcxyX3D2fzhOEE6XB+7hlq8aBRheoP47nCdcwTA921Q4IOPX/1/e8Tmc3aHOCFCgmBrvdakh5GS5ux0KRP6dIMrfsWPtlNSCHcS4SuT/yUKEdaQbQIZRAwNW+6MhSG85C77mAqldpV8ol49P9lrVFcNM6v8ZqXiP0kCCQeolxjM/5nXzIRZZqPlThpBXFwRJnhGnRajW4HQiJHf9Twi9llg0HbhtOW36QMI5ybmeki9j0q3sJeFbSvmafw08/v/xGUqRc5BIHG1ha2Vbv4r25Cd2ro0CRB3eZKrdsX2cg60EqVY8rDQIBf+IiQAXBeQWFwxDAsw6eApn1+Z47mf1RY8LOzPnpWEhTwYy6NgpKNlDZN9THRv2CMtt6N8i6rI0XEYFaF7V27XqX12VwATDdw0AqLLEnpksIbuFr324YmzoQo8dZ6C7lgLPpA+DGc96aekoHsJ3cqwn2j+JCIkufkvuZzyu1CXhI0xOY0eCTf+xeD3doidpRBQlxO6HG8Yz2VkIvWmY9I1Ur0e/zs+YIdbtAUoT3kY9maQ69GgR3ijjPpji+bpTW+TGB2vjc/Pt/TmxqHZWvI65Pm2QSOCzJHnd6jIbHiDdXiSdeRM5a6gX6i6NcchLWCzBiJoHaoBQjO80MCtO6QKJcVxprTVKTZOo=
+      file:
+        - dist/protoman-linux-amd64.zip
+        - dist/protoman-darwin-amd64.zip
+      skip_cleanup: true
+      on:
+        tags: true
+  - language: java
+    before_install:
+    - sudo apt-get update -qq
+    - sudo apt-get -qq install -y software-properties-common
+    - sudo add-apt-repository -y ppa:maarten-fonville/protobuf
+    - sudo apt-get update -qq
+    - sudo apt-get install -y protobuf-compiler
+    script:
+    - mvn test
