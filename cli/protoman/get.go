@@ -18,6 +18,7 @@ package protoman
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -27,19 +28,36 @@ import (
 )
 
 // Get package from protoman
-func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistryClient) error {
-	for _, p := range packages {
-		if err := getPackage(client, p); err != nil {
+func Get(client registry.SchemaRegistryClient, path string, pkgs []string) error {
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("%s is not a directory", path)
+	}
+
+	for _, pkg := range pkgs {
+		pp, err := newProtoPackage(path, pkg)
+		if err != nil {
 			return err
 		}
-		if err := addThirdPartyPackage(p); err != nil {
+
+		if err := getPackage(client, pp); err != nil {
+			return err
+		}
+
+		if err := addThirdPartyPackage(pp); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
+func getPackage(client registry.SchemaRegistryClient, pp *protoPackage) error {
 	// Get schema(s) from registry.
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancel()
@@ -47,7 +65,7 @@ func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
 	resp, err := client.GetSchema(ctx, &registry.GetSchemaRequest{
 		Request: []*registry.GetSchemaRequest_RequestedPackage{
 			&registry.GetSchemaRequest_RequestedPackage{
-				Package: p.Pkg,
+				Package: pp.Pkg,
 			},
 		},
 	})
@@ -57,11 +75,11 @@ func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
 
 	// Store each proto in package path
 	for _, protoFile := range resp.ProtoFile {
-		if err := os.MkdirAll(filepath.Join(p.Path, filepath.Dir(protoFile.Path)), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(pp.Path, filepath.Dir(protoFile.Path)), 0755); err != nil {
 			return errors.Wrap(err, "failed to create package path")
 		}
 		path := filepath.Join(
-			filepath.Join(p.Path, filepath.Dir(protoFile.Path)),
+			filepath.Join(pp.Path, filepath.Dir(protoFile.Path)),
 			filepath.Base(protoFile.Path))
 		err := ioutil.WriteFile(path,
 			[]byte(protoFile.Content), 0644)

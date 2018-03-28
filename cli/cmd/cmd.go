@@ -148,14 +148,7 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			exitOnErr(err)
 		}
-		var packages []protoman.ProtoPackage
-		for _, pkg := range args {
-			packages = append(packages, protoman.ProtoPackage{
-				Path: path,
-				Pkg:  pkg,
-			})
-		}
-		exitOnErr(protoman.Get(packages, path, client))
+		exitOnErr(protoman.Get(client, path, args))
 	},
 }
 
