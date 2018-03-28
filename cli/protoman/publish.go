@@ -19,7 +19,6 @@ package protoman
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spotify/protoman/cli/path"
@@ -41,10 +40,12 @@ func formatResponse(err *registry.Error, violations []*registry.ValidationViolat
 }
 
 func upload(protoFiles []*registry.ProtoFile, client registry.SchemaRegistryClient) error {
-	request := registry.PublishSchemaRequest{ProtoFile: protoFiles}
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
 
-	resp, err := client.PublishSchema(ctx, &request)
+	resp, err := client.PublishSchema(ctx, &registry.PublishSchemaRequest{
+		ProtoFile: protoFiles,
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to upload schema")
 	}
