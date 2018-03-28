@@ -18,13 +18,26 @@ package protoman
 
 import (
 	"fmt"
-	"strings"
+	"os"
 )
 
 // Add protoman schema to config file
-func Add(packageName, path string) error {
-	if !strings.HasSuffix(path, strings.Replace(packageName, ".", "/", -1)) {
-		return fmt.Errorf("package name does not match path, expected path to end with %s", path)
+func Add(pkg, path string) error {
+	pp, err := newProtoPackage(path, pkg)
+	if err != nil {
+		return err
 	}
-	return addLocalPackage(ProtoPackage{Pkg: packageName, Path: path})
+
+	fi, err := os.Stat(pp.absPath())
+	if os.IsNotExist(err) {
+		return fmt.Errorf("package directory not found at %s", pp.absPath())
+	}
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return fmt.Errorf("%s is not a directory", pp.absPath())
+	}
+
+	return addLocalPackage(pp)
 }

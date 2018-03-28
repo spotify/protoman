@@ -24,50 +24,45 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// ProtoPackage information
-type ProtoPackage struct {
-	Path string
-	Pkg  string
-}
 type config struct {
-	Local      []ProtoPackage `yaml:"local"`
-	ThirdParty []ProtoPackage `yaml:"third_party"`
+	Local      []*protoPackage `yaml:"local"`
+	ThirdParty []*protoPackage `yaml:"third_party"`
 }
 
 const defaultConfig = ".protoman"
 
 // addLocalPackage to config.
-func addLocalPackage(protoPackage ProtoPackage) error {
+func addLocalPackage(pp *protoPackage) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
 
-	for _, p := range cfg.Local {
-		if p.Pkg == protoPackage.Pkg {
+	for _, local := range cfg.Local {
+		if local.Pkg == pp.Pkg {
 			return nil
 		}
 	}
 
-	cfg.Local = append(cfg.Local, protoPackage)
+	cfg.Local = append(cfg.Local, pp)
 	return writeConfig(cfg)
 }
 
 // addThirdPartyPackage to config.
-func addThirdPartyPackage(protoPackage ProtoPackage) error {
+func addThirdPartyPackage(pp *protoPackage) error {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil
 	}
 
-	for _, p := range cfg.ThirdParty {
-		if p.Pkg == protoPackage.Pkg {
+	for _, thirdParty := range cfg.ThirdParty {
+		if thirdParty.Pkg == pp.Pkg {
 			// Package already exist in configuraion
 			return nil
 		}
 	}
 	// TODO: fix this
-	cfg.ThirdParty = append(cfg.ThirdParty, protoPackage)
+	cfg.ThirdParty = append(cfg.ThirdParty, pp)
 
 	return writeConfig(cfg)
 }

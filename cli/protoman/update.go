@@ -26,8 +26,8 @@ func Update(client registry.SchemaRegistryClient) error {
 	if err != nil {
 		return err
 	}
-	for _, p := range c.ThirdParty {
-		if err := getPackage(client, p); err != nil {
+	for _, pp := range c.ThirdParty {
+		if err := getPackage(client, pp); err != nil {
 			return err
 		}
 	}

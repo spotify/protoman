@@ -8,11 +8,11 @@ import (
 func TestConfig(t *testing.T) {
 	defer os.Remove(".protoman")
 
-	err := addThirdPartyPackage(ProtoPackage{Pkg: "test.foobar", Path: "src/main/proto/test/foobar"})
+	err := addThirdPartyPackage(&protoPackage{Pkg: "test.foobar", Path: "src/main/proto/test/foobar"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = addThirdPartyPackage(ProtoPackage{Pkg: "test.winning", Path: "src/main/proto/test/winning"})
+	err = addThirdPartyPackage(&protoPackage{Pkg: "test.winning", Path: "src/main/proto/test/winning"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestConfig(t *testing.T) {
 	if len(cfg.ThirdParty) != 2 {
 		t.Error("Expected to find two third party packages")
 	}
-	err = addLocalPackage(ProtoPackage{Pkg: "test.local", Path: "src/main/proto/test/local"})
+	err = addLocalPackage(&protoPackage{Pkg: "test.local", Path: "src/main/proto/test/local"})
 	if err != nil {
 		t.Fatal(err)
 	}
