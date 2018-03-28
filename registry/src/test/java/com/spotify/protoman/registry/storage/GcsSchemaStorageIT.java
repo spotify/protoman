@@ -32,7 +32,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.spotify.protoman.registry.SchemaFile;
 import com.spotify.protoman.registry.SchemaVersion;
-import com.spotify.protoman.registry.storage.SchemaStorage.Transaction;
+import com.spotify.protoman.registry.storage.SchemaStorage.ReadAndWriteTransaction;
+import com.spotify.protoman.registry.storage.SchemaStorage.ReadOnlyTransaction;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Optional;
@@ -49,7 +50,7 @@ import org.junit.Test;
  */
 public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
-  public static final String BUCKET = "protoman-integration-tests";
+  private static final String BUCKET = "protoman-integration-tests";
 
   private GcsSchemaStorage schemaStorage;
 
@@ -58,6 +59,10 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
   private static final SchemaFile schemaFile2 = SchemaFile.create(
       Paths.get("pkg2/proto2.proto"), "CONTENT2");
+
+  private static final SchemaVersion VERSION_1_0_0 = SchemaVersion.create("1", 0, 0);
+  private static final SchemaVersion VERSION_2_0_0 = SchemaVersion.create("2", 0, 0);
+  private static final SchemaVersion VERSION_0_1_0 = SchemaVersion.create("0", 1, 0);
 
   public GcsSchemaStorageIT() {
     super(StorageOptions.getDefaultInstance().getService(),
@@ -82,52 +87,47 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
   @Test
   public void testTransactions() {
 
-    final long snapshot0;
-    try (final Transaction tx = schemaStorage.open()) {
-      snapshot0 = tx.getLatestSnapshotVersion();
-    }
+    final long snapshot0 = schemaStorage.getLatestSnapshotVersion();
 
     // add file1
     final long snapshot1;
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.storeFile(schemaFile1);
       snapshot1 = tx.commit();
     }
 
     // add package version for pkg1
     final long snapshot2;
-    try (final Transaction tx = schemaStorage.open()) {
-      tx.storePackageVersion("pkg1", SchemaVersion.create("1", 0, 0));
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
+      tx.storePackageVersion("pkg1", VERSION_1_0_0);
       snapshot2 = tx.commit();
     }
 
     // add file2 and change package version for pkg1 and add package version for pkg2
     final long snapshot3;
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.storeFile(schemaFile2);
-      tx.storePackageVersion("pkg1", SchemaVersion.create("2", 0, 0));
-      tx.storePackageVersion("pkg2", SchemaVersion.create("0", 1, 0));
+      tx.storePackageVersion("pkg1", VERSION_2_0_0);
+      tx.storePackageVersion("pkg2", VERSION_0_1_0);
       snapshot3 = tx.commit();
     }
 
     // delete a file
     final long snapshot4;
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.deleteFile(schemaFile2.path());
       snapshot4 = tx.commit();
     }
 
     // delete a file and update package version without committing transaction
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.storeFile(schemaFile2);
-      tx.storePackageVersion("pkg1", SchemaVersion.create("2", 0, 0));
-      tx.storePackageVersion("pkg2", SchemaVersion.create("0", 1, 0));
+      tx.storePackageVersion("pkg1", VERSION_2_0_0);
+      tx.storePackageVersion("pkg2", VERSION_0_1_0);
       // no commit
     }
-    final long snapshot5;
-    try (final Transaction tx = schemaStorage.open()) {
-      snapshot5 = tx.getLatestSnapshotVersion();
-    }
+
+    final long snapshot5 = schemaStorage.getLatestSnapshotVersion();
 
     assertThat(schemaFiles(snapshot0), equalTo(ImmutableSet.of()));
     assertThat(packageVersions(snapshot0), equalTo(ImmutableMap.of()));
@@ -138,26 +138,26 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
     assertThat(snapshot2, is(greaterThan(snapshot1)));
     assertThat(schemaFiles(snapshot2), equalTo(ImmutableSet.of(schemaFile1)));
-    assertThat(packageVersions(snapshot2), equalTo(ImmutableMap.of("pkg1",
-        SchemaVersion.create("1", 0, 0))));
+    assertThat(packageVersions(snapshot2), equalTo(ImmutableMap.of(
+        "pkg1", VERSION_1_0_0)));
 
     assertThat(snapshot3, is(greaterThan(snapshot2)));
     assertThat(schemaFiles(snapshot3), equalTo(ImmutableSet.of(schemaFile1, schemaFile2)));
     assertThat(packageVersions(snapshot3), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create("2", 0, 0),
-        "pkg2", SchemaVersion.create("0", 1, 0))));
+        "pkg1", VERSION_2_0_0,
+        "pkg2", VERSION_0_1_0)));
 
     assertThat(snapshot4, is(greaterThan(snapshot3)));
     assertThat(schemaFiles(snapshot4), equalTo(ImmutableSet.of(schemaFile1)));
     assertThat(packageVersions(snapshot4), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create("2", 0, 0),
-        "pkg2", SchemaVersion.create("0", 1, 0))));
+        "pkg1", VERSION_2_0_0,
+        "pkg2", VERSION_0_1_0)));
 
     assertThat(snapshot5, equalTo(snapshot4));
     assertThat(schemaFiles(snapshot4), equalTo(ImmutableSet.of(schemaFile1)));
     assertThat(packageVersions(snapshot4), equalTo(ImmutableMap.of(
-        "pkg1", SchemaVersion.create("2", 0, 0),
-        "pkg2", SchemaVersion.create("0", 1, 0))));
+        "pkg1", VERSION_2_0_0,
+        "pkg2", VERSION_0_1_0)));
 
   }
 
@@ -166,18 +166,18 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
     final Optional<SchemaVersion> before;
     final Optional<SchemaVersion> after;
 
-    try (final Transaction tx = schemaStorage.open()) {
-      before = tx.getPackageVersion(tx.getLatestSnapshotVersion(), "pkg1");
+    try (final ReadOnlyTransaction tx = schemaStorage.open()) {
+      before = tx.getPackageVersion("pkg1");
     }
 
     // store pkg
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.storePackageVersion("pkg1", SchemaVersion.create("1", 0, 0));
       tx.commit();
     }
 
-    try (final Transaction tx = schemaStorage.open()) {
-      after = tx.getPackageVersion(tx.getLatestSnapshotVersion(), "pkg1");
+    try (final ReadOnlyTransaction tx = schemaStorage.open()) {
+      after = tx.getPackageVersion("pkg1");
     }
 
     assertThat(before, is(Optional.empty()));
@@ -186,15 +186,18 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
   @Test(expected = IllegalStateException.class)
   public void useOfAlreadyCommittedTransactionThrows_get() {
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.commit();
-      tx.getLatestSnapshotVersion();
+      tx.storeProtoDependencies(
+          Paths.get("foo.proto"),
+          ImmutableSet.of(Paths.get("bar.proto"))
+      );
     }
   }
 
   @Test(expected = IllegalStateException.class)
   public void useOfAlreadyCommittedTransactionThrows_commit() {
-    try (final Transaction tx = schemaStorage.open()) {
+    try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       tx.commit();
       tx.commit();
     }
@@ -202,16 +205,16 @@ public class GcsSchemaStorageIT extends GcsBucketIntegrationTestBase {
 
   private Set<SchemaFile> schemaFiles(long snapshotVersion) {
     final Set<SchemaFile> all;
-    try (final Transaction tx = schemaStorage.open()) {
-      all = tx.fetchAllFiles(snapshotVersion).collect(Collectors.toSet());
+    try (final ReadOnlyTransaction tx = schemaStorage.open(snapshotVersion)) {
+      all = tx.fetchAllFiles().collect(Collectors.toSet());
     }
     return all;
   }
 
   private Map<String, SchemaVersion> packageVersions(long snapshotVersion) {
     final Map<String, SchemaVersion> all;
-    try (final Transaction tx = schemaStorage.open()) {
-      all = tx.allPackageVersions(snapshotVersion);
+    try (final ReadOnlyTransaction tx = schemaStorage.open(snapshotVersion)) {
+      all = tx.allPackageVersions();
     }
     return all;
   }
