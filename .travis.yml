@@ -9,7 +9,6 @@ matrix:
     script:
     - go test -v ./...
     before_deploy:
-      - cd cli/
       - |
         platforms=(darwin/amd64 linux/amd64)
         for p in "${platforms[@]}"; do
