@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spotify/protoman/cli/registry"
@@ -41,14 +40,17 @@ func Get(packages []ProtoPackage, rootPath string, client registry.SchemaRegistr
 }
 
 func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
-	request := registry.GetSchemaRequest{
-		Request: []*registry.GetSchemaRequest_RequestedPackage{
-			&registry.GetSchemaRequest_RequestedPackage{Package: p.Pkg},
-		},
-	}
 	// Get schema(s) from registry.
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*3)
-	resp, err := client.GetSchema(ctx, &request)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancel()
+
+	resp, err := client.GetSchema(ctx, &registry.GetSchemaRequest{
+		Request: []*registry.GetSchemaRequest_RequestedPackage{
+			&registry.GetSchemaRequest_RequestedPackage{
+				Package: p.Pkg,
+			},
+		},
+	})
 	if err != nil {
 		return errors.Wrap(err, "failed to get schema(s) from registry")
 	}
@@ -67,5 +69,6 @@ func getPackage(client registry.SchemaRegistryClient, p ProtoPackage) error {
 			return errors.Wrap(err, "failed to write protofile")
 		}
 	}
+
 	return nil
 }

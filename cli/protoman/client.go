@@ -24,6 +24,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+// DefaultTimeout is the timeout for all RPCs calls to the registry.
+// TODO: Make this configurable.
+var DefaultTimeout = 5 * time.Second
+
 //NewRegistryClient returns a new registry client.
 func NewRegistryClient(serverAddr string) (registry.SchemaRegistryClient, error) {
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure(), grpc.WithTimeout(time.Second))
