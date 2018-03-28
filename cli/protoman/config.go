@@ -24,12 +24,12 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+var defaultConfig = ".protoman"
+
 type config struct {
 	Local      []*protoPackage `yaml:"local"`
 	ThirdParty []*protoPackage `yaml:"third_party"`
 }
-
-const defaultConfig = ".protoman"
 
 // addLocalPackage to config.
 func addLocalPackage(pp *protoPackage) error {
