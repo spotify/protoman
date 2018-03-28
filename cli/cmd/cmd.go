@@ -24,7 +24,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spotify/protoman/cli/protoman"
-	"github.com/spotify/protoman/cli/validator"
 )
 
 var rootCmd = &cobra.Command{
@@ -33,7 +32,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionCmd, validateCmd, publishCmd, genCmd, getCmd, updateCmd, addCmd)
+	rootCmd.AddCommand(versionCmd, publishCmd, getCmd, updateCmd, addCmd)
 	publishCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	getCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	updateCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
@@ -53,22 +52,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number of protoman",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Protoman version 0.0.1")
-	},
-}
-
-var validateCmd = &cobra.Command{
-	Use:   "validate [path]",
-	Short: "Validate proto defintion file(s)",
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return errors.New("path required")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if _, err := os.Stat(args[0]); err == nil {
-			exitOnErr(validator.Validate(args[0]))
-		}
 	},
 }
 
@@ -124,32 +107,6 @@ var publishCmd = &cobra.Command{
 		exitOnErr(protoman.Publish(
 			args,
 			client))
-	},
-}
-
-var genCmd = &cobra.Command{
-	Use:   "generate [package name] [service name] [root path]",
-	Short: "generate protocol stanza",
-	Long: `
-	Generate protocol stanza
-	Example:
-		package name: spotify.protoman.v1
-		service name: registry
-	The following input example will create
-	spotify/protoman/v1/registry.proto in your current directory alongside
-	a .protoman file that tracks your dependencies.
-	`,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 3 {
-			return errors.New("Missing parameters")
-		}
-		if strings.HasPrefix(args[2], "/") {
-			return errors.New("Root path must be relative to project")
-		}
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		exitOnErr(protoman.Generate(args[0], args[1], args[2]))
 	},
 }
 
