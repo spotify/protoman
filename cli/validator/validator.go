@@ -26,7 +26,6 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/pkg/errors"
-	"github.com/spotify/protoman/cli/path"
 	"github.com/spotify/protoman/cli/registry"
 )
 
@@ -101,14 +100,4 @@ func ValidateProtos(protoPaths []string) ([]*registry.ProtoFile, error) {
 		protos[i] = proto
 	}
 	return protos, nil
-}
-
-// Validate validates all .proto file under given directory
-func Validate(root string) error {
-	protoPaths, err := path.FindProtoFiles(root)
-	if err != nil {
-		return err
-	}
-	_, validationErr := ValidateProtos(protoPaths)
-	return validationErr
 }
