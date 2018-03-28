@@ -57,6 +57,8 @@ func Get(client registry.SchemaRegistryClient, path string, pkgs []string) error
 	return nil
 }
 
+var errSchemaNotFound = errors.New("schema not found")
+
 func getPackage(client registry.SchemaRegistryClient, pp *protoPackage) error {
 	// Get schema(s) from registry.
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
@@ -71,6 +73,9 @@ func getPackage(client registry.SchemaRegistryClient, pp *protoPackage) error {
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to get schema(s) from registry")
+	}
+	if len(resp.ProtoFile) == 0 {
+		return errSchemaNotFound
 	}
 
 	// Store each proto in package path
