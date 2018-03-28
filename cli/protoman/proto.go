@@ -54,7 +54,7 @@ func (pp *protoPackage) pkgPath() string {
 	return strings.Replace(pp.Pkg, ".", "/", -1)
 }
 
-// rePkgName matches alphanumeric characters, numbers and dots.
+// rePkgName matches alphanumeric characters and dots.
 var rePkgName = regexp.MustCompile("^[a-zA-Z0-9.]+$")
 
 func validPkgName(pkg string) bool {
