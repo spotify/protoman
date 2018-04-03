@@ -1,0 +1,164 @@
+/**
+ * Copyright 2013 The Rust Project Developers. See the COPYRIGHT
+ * file at the top-level directory of this distribution and at
+ * http://rust-lang.org/COPYRIGHT.
+ *
+ * Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+ * http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+ * <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+ * option. This file may not be copied, modified, or distributed
+ * except according to those terms.
+ *
+ * Contains modifications © 2017 Spotify AB All Rights Reserved.
+ */
+@import url('https://fonts.googleapis.com/css?family=Source+Serif+Pro');
+
+.component-entity-documentation {
+  font: 16px/1.4 "Source Serif Pro", Georgia, Times, "Times New Roman", serif;
+  margin: 0;
+  position: relative;
+  max-width: 960px;
+
+  -webkit-font-feature-settings: "kern", "liga";
+  -moz-font-feature-settings: "kern", "liga";
+  font-feature-settings: "kern", "liga";
+
+  h1 {
+    font-size: 1.5em;
+  }
+  h2 {
+    font-size: 1.4em;
+  }
+  h3 {
+    font-size: 1.3em;
+  }
+  h1, h2, h3, h4 {
+    font-weight: 500;
+    margin: 20px 0 15px 0;
+    padding-bottom: 6px;
+  }
+  h1, h2, h3, h4 {
+    font-family: "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  ol, ul {
+    padding-left: 25px;
+    list-style-type: square;
+  }
+  ul ul, ol ul, ul ol, ol ol {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin: 0 0 .6em 0;
+  }
+
+  summary {
+    outline: none;
+  }
+
+  code, pre {
+    font-family: "Source Code Pro", Menlo, Monaco, Consolas, "DejaVu Sans Mono", Inconsolata, monospace;
+    white-space: pre-wrap;
+  }
+  .docblock code, .docblock-short code {
+    border-radius: 3px;
+    padding: 0 0.2em;
+  }
+  .docblock pre code, .docblock-short pre code {
+    padding: 0;
+  }
+
+  pre {
+    padding-bottom: 16px;
+  }
+
+  img {
+    max-width: 100%;
+  }
+
+  nav.sub {
+    font-size: 16px;
+    text-transform: uppercase;
+  }
+
+  .sidebar {
+    width: 200px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-height: 100%;
+  }
+
+  .sidebar .current {
+    margin-right: -20px;
+  }
+
+  .content, nav { max-width: 960px; }
+
+  .docblock-short p {
+    display: inline;
+  }
+
+  .docblock-short.nowrap {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .docblock-short p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+  .docblock-short code { white-space: nowrap; }
+
+  .docblock h1 { font-size: 1em; }
+  .docblock h2 { font-size: 0.95em; }
+  .docblock h3, .docblock h4, .docblock h5 { font-size: 0.9em; }
+
+  .docblock {
+    margin-left: 24px;
+  }
+
+  h4 > code, h3 > code, .invisible > code {
+    position: inherit;
+  }
+
+  .docblock table {
+    border: 1px solid;
+    margin: .5em 0;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .docblock table td {
+    padding: .5em;
+    border-top: 1px dashed;
+    border-bottom: 1px dashed;
+  }
+
+  .docblock table th {
+    padding: .5em;
+    text-align: left;
+    border-top: 1px solid;
+    border-bottom: 1px solid;
+  }
+
+  .fields + table {
+    margin-bottom: 1em;
+  }
+
+  a {
+    text-decoration: none;
+    background: transparent;
+  }
+
+  .docblock a:hover, .docblock-short a:hover, .stability a {
+    text-decoration: underline;
+  }
+
+  .block a.current.crate { font-weight: 500; }
+
+}
