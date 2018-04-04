@@ -44,11 +44,6 @@
     </dependency>
 
     <dependency>
-      <groupId>com.spotify</groupId>
-      <artifactId>jersey-support</artifactId>
-      <version>0.0.2</version>
-    </dependency>
-    <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-grizzly2-http</artifactId>
       <version>2.23.2</version>
