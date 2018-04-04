@@ -1,0 +1,115 @@
+@charset "UTF-8";
+/**
+ * Copyright 2013 The Rust Project Developers. See the COPYRIGHT
+ * file at the top-level directory of this distribution and at
+ * http://rust-lang.org/COPYRIGHT.
+ *
+ * Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+ * http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+ * <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+ * option. This file may not be copied, modified, or distributed
+ * except according to those terms.
+ *
+ * Contains modifications © 2017 Spotify AB All Rights Reserved.
+ */
+@import url("https://fonts.googleapis.com/css?family=Source+Serif+Pro");
+.component-entity-documentation {
+  font: 16px/1.4 "Source Serif Pro", Georgia, Times, "Times New Roman", serif;
+  margin: 0;
+  position: relative;
+  max-width: 960px;
+  -webkit-font-feature-settings: "kern", "liga";
+  -moz-font-feature-settings: "kern", "liga";
+  font-feature-settings: "kern", "liga"; }
+  .component-entity-documentation h1 {
+    font-size: 1.5em; }
+  .component-entity-documentation h2 {
+    font-size: 1.4em; }
+  .component-entity-documentation h3 {
+    font-size: 1.3em; }
+  .component-entity-documentation h1, .component-entity-documentation h2, .component-entity-documentation h3, .component-entity-documentation h4 {
+    font-weight: 500;
+    margin: 20px 0 15px 0;
+    padding-bottom: 6px; }
+  .component-entity-documentation h1, .component-entity-documentation h2, .component-entity-documentation h3, .component-entity-documentation h4 {
+    font-family: "Fira Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  .component-entity-documentation ol, .component-entity-documentation ul {
+    padding-left: 25px;
+    list-style-type: square; }
+  .component-entity-documentation ul ul, .component-entity-documentation ol ul, .component-entity-documentation ul ol, .component-entity-documentation ol ol {
+    margin-bottom: 0; }
+  .component-entity-documentation p {
+    margin: 0 0 .6em 0; }
+  .component-entity-documentation summary {
+    outline: none; }
+  .component-entity-documentation code, .component-entity-documentation pre {
+    font-family: "Source Code Pro", Menlo, Monaco, Consolas, "DejaVu Sans Mono", Inconsolata, monospace;
+    white-space: pre-wrap; }
+  .component-entity-documentation .docblock code, .component-entity-documentation .docblock-short code {
+    border-radius: 3px;
+    padding: 0 0.2em; }
+  .component-entity-documentation .docblock pre code, .component-entity-documentation .docblock-short pre code {
+    padding: 0; }
+  .component-entity-documentation pre {
+    padding-bottom: 16px; }
+  .component-entity-documentation img {
+    max-width: 100%; }
+  .component-entity-documentation nav.sub {
+    font-size: 16px;
+    text-transform: uppercase; }
+  .component-entity-documentation .sidebar {
+    width: 200px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-height: 100%; }
+  .component-entity-documentation .sidebar .current {
+    margin-right: -20px; }
+  .component-entity-documentation .content, .component-entity-documentation nav {
+    max-width: 960px; }
+  .component-entity-documentation .docblock-short p {
+    display: inline; }
+  .component-entity-documentation .docblock-short.nowrap {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis; }
+  .component-entity-documentation .docblock-short p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0; }
+  .component-entity-documentation .docblock-short code {
+    white-space: nowrap; }
+  .component-entity-documentation .docblock h1 {
+    font-size: 1em; }
+  .component-entity-documentation .docblock h2 {
+    font-size: 0.95em; }
+  .component-entity-documentation .docblock h3, .component-entity-documentation .docblock h4, .component-entity-documentation .docblock h5 {
+    font-size: 0.9em; }
+  .component-entity-documentation .docblock {
+    margin-left: 24px; }
+  .component-entity-documentation h4 > code, .component-entity-documentation h3 > code, .component-entity-documentation .invisible > code {
+    position: inherit; }
+  .component-entity-documentation .docblock table {
+    border: 1px solid;
+    margin: .5em 0;
+    border-collapse: collapse;
+    width: 100%; }
+  .component-entity-documentation .docblock table td {
+    padding: .5em;
+    border-top: 1px dashed;
+    border-bottom: 1px dashed; }
+  .component-entity-documentation .docblock table th {
+    padding: .5em;
+    text-align: left;
+    border-top: 1px solid;
+    border-bottom: 1px solid; }
+  .component-entity-documentation .fields + table {
+    margin-bottom: 1em; }
+  .component-entity-documentation a {
+    text-decoration: none;
+    background: transparent; }
+  .component-entity-documentation .docblock a:hover, .component-entity-documentation .docblock-short a:hover, .component-entity-documentation .stability a {
+    text-decoration: underline; }
+  .component-entity-documentation .block a.current.crate {
+    font-weight: 500; }

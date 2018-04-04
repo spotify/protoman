@@ -34,3 +34,5 @@ build
 
 # Golang
 vendor
+
+.protoman

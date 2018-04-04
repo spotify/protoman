@@ -1,0 +1,24 @@
+
+.components-package-tree .components-package-tree-node-type-message > .ant-tree-switcher-noop::after {
+  content: "\E664" !important; /* "file" */
+}
+
+.components-package-tree .components-package-tree-node-type-enum > .ant-tree-switcher-noop::after {
+  content: "\E639" !important; /* "bars" */
+}
+
+.components-package-tree .components-package-tree-node-type-option > .ant-tree-switcher-noop::after {
+  content: "\E6D2" !important; /* "tag" */
+}
+
+.components-package-tree .components-package-tree-node-type-service > .ant-tree-switcher-noop::after {
+  content: "\E951" !important; /* "api" */
+}
+
+.components-package-tree .components-package-tree-node-type-package > .ant-tree-switcher-noop::after {
+  content: "\E696" !important; /* "appstore" */
+}
+
+.components-package-tree .components-package-tree-node-type-unknown > .ant-tree-switcher-noop::after {
+  content: "\E63B" !important; /* "question-circle" */
+}
