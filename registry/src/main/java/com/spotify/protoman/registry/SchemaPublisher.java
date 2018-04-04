@@ -29,7 +29,9 @@ import javax.annotation.Nullable;
 
 public interface SchemaPublisher {
 
-  PublishResult publishSchemata(ImmutableList<SchemaFile> schemaFiles);
+  PublishResult publishSchemata(ImmutableList<SchemaFile> schemaFiles,
+                                boolean dryRun,
+                                boolean force);
 
   @AutoValue
   abstract class PublishResult {
