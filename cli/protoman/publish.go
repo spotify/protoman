@@ -39,24 +39,11 @@ func formatResponse(err *registry.Error, violations []*registry.ValidationViolat
 	return nil
 }
 
-func upload(protoFiles []*registry.ProtoFile, client registry.SchemaRegistryClient) error {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancel()
-
-	resp, err := client.PublishSchema(ctx, &registry.PublishSchemaRequest{
-		ProtoFile: protoFiles,
-	})
-	if err != nil {
-		return errors.Wrap(err, "failed to upload schema")
-	}
-	return formatResponse(resp.Error, resp.Violation)
-}
-
 /*
 Publish list of protoPaths to registry, will resolve local packages
 defined .protoman configuration unless files are supplied.
 */
-func Publish(protoPaths []string, client registry.SchemaRegistryClient) error {
+func Publish(protoPaths []string, client registry.SchemaRegistryClient, dryRun bool, force bool) error {
 	if len(protoPaths) == 0 {
 		// No protos provided on command line, will upload local packages defined in .protoman
 		c, err := readConfig()
@@ -77,8 +64,19 @@ func Publish(protoPaths []string, client registry.SchemaRegistryClient) error {
 	if validationErr != nil {
 		return validationErr
 	}
+
 	if len(protos) > 0 {
-		return upload(protos, client)
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeout)
+		defer cancel()
+		resp, err := client.PublishSchema(ctx, &registry.PublishSchemaRequest{
+			ProtoFile: protos,
+			DryRun:    dryRun,
+			Force:     force,
+		})
+		if err != nil {
+			return errors.Wrap(err, "failed to upload schema")
+		}
+		return formatResponse(resp.Error, resp.Violation)
 	}
 	return nil
 }

@@ -85,7 +85,9 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
   }
 
   @Override
-  public PublishResult publishSchemata(final ImmutableList<SchemaFile> schemaFiles) {
+  public PublishResult publishSchemata(final ImmutableList<SchemaFile> schemaFiles,
+                                       boolean dryRun,
+                                       boolean force) {
     try (final ReadAndWriteTransaction tx = schemaStorage.open()) {
       final BuildDescriptorsResult buildDescriptorsResult = buildDescriptorSets(tx, schemaFiles);
 
@@ -105,9 +107,10 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       final ImmutableList<ValidationViolation> violations =
           schemaValidator.validate(currentDs, candidateDs);
 
-      // TODO(staffan): Don't treat all violations as fatal
       if (!violations.isEmpty()) {
-        return PublishResult.error("Validation failed", violations);
+        if (!force) {
+          return PublishResult.error("Validation failed", violations);
+        }
       }
 
       // Store files, but only for protos that changed
@@ -126,7 +129,9 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       final ImmutableMap<String, SchemaVersionPair> publishedPackages =
           updatePackageVersions(tx, currentDs, candidateDs);
 
-      tx.commit();
+      if (!dryRun) {
+        tx.commit();
+      }
 
       return PublishResult.create(violations, publishedPackages);
     } catch (Exception e) {

@@ -14,6 +14,8 @@ service SchemaRegistry {
 
 message PublishSchemaRequest {
     repeated ProtoFile proto_file = 1;
+    bool dry_run = 2;
+    bool force = 3;
 }
 
 message PublishSchemaResponse {

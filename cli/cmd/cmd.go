@@ -34,6 +34,8 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(versionCmd, publishCmd, getCmd, updateCmd, addCmd)
 	publishCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
+	publishCmd.PersistentFlags().BoolP("force", "f", false, "Force publish of protos")
+	publishCmd.PersistentFlags().BoolP("dry-run", "d", false, "Validation only publish")
 	getCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	updateCmd.PersistentFlags().StringP("server", "s", "", "Protoman server address")
 	getCmd.PersistentFlags().StringP("proto-dir", "p", "", "Root directory where protos will be stored")
@@ -101,12 +103,14 @@ var publishCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
-		if err != nil {
-			exitOnErr(err)
-		}
+		exitOnErr(err)
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		force, _ := cmd.Flags().GetBool("force")
 		exitOnErr(protoman.Publish(
 			args,
-			client))
+			client,
+			dryRun,
+			force))
 	},
 }
 
@@ -121,9 +125,7 @@ var updateCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
-		if err != nil {
-			exitOnErr(err)
-		}
+		exitOnErr(err)
 		exitOnErr(protoman.Update(client))
 	},
 }
@@ -145,9 +147,7 @@ var getCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		path := cmd.Flag("proto-dir").Value.String()
 		client, err := protoman.NewRegistryClient(cmd.Flag("server").Value.String())
-		if err != nil {
-			exitOnErr(err)
-		}
+		exitOnErr(err)
 		exitOnErr(protoman.Get(client, path, args))
 	},
 }

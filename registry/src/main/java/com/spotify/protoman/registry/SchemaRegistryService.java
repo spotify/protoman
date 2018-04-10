@@ -22,6 +22,7 @@ package com.spotify.protoman.registry;
 
 import static com.google.common.collect.ImmutableList.toImmutableList;
 
+import com.google.common.collect.ImmutableList;
 import com.spotify.protoman.Error;
 import com.spotify.protoman.FilePosition;
 import com.spotify.protoman.GetSchemaRequest;
@@ -64,12 +65,16 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
     try {
       final PublishSchemaResponse.Builder responseBuilder = PublishSchemaResponse.newBuilder();
 
+      final ImmutableList<SchemaFile> schemaFiles = request.getProtoFileList().stream()
+          .map(protoFile -> SchemaFile.create(
+              Paths.get(protoFile.getPath()),
+              protoFile.getContent())
+          ).collect(toImmutableList());
+
       final SchemaPublisher.PublishResult result = schemaPublisher.publishSchemata(
-          request.getProtoFileList().stream()
-              .map(protoFile -> SchemaFile.create(
-                  Paths.get(protoFile.getPath()),
-                  protoFile.getContent())
-              ).collect(toImmutableList())
+          schemaFiles,
+          request.getDryRun(),
+          request.getForce()
       );
 
       result.error().ifPresent(
@@ -129,6 +134,8 @@ public class SchemaRegistryService extends SchemaRegistryGrpc.SchemaRegistryImpl
       responseObserver.onError(e);
     }
   }
+
+
 
   private static com.spotify.protoman.FilePosition sourceCodeInfoToFilePositionProto(
       final SourceCodeInfo sourceCodeInfo) {
