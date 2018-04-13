@@ -103,14 +103,13 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       final DescriptorSet currentDs = buildDescriptorsResult.current();
       final DescriptorSet candidateDs = buildDescriptorsResult.candidate();
 
-      // Validate changes
+      // Validate changes except the case when '--force' is specified
       final ImmutableList<ValidationViolation> violations =
+          force ? ImmutableList.of() :
           schemaValidator.validate(currentDs, candidateDs);
 
       if (!violations.isEmpty()) {
-        if (!force) {
-          return PublishResult.error("Validation failed", violations);
-        }
+        return PublishResult.error("Validation failed", violations);
       }
 
       // Store files, but only for protos that changed
