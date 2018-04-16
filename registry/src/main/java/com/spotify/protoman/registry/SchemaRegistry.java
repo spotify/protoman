@@ -103,14 +103,13 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
       final DescriptorSet currentDs = buildDescriptorsResult.current();
       final DescriptorSet candidateDs = buildDescriptorsResult.candidate();
 
-      // Validate changes
+      // Validate changes except the case when '--force' is specified
       final ImmutableList<ValidationViolation> violations =
+          force ? ImmutableList.of() :
           schemaValidator.validate(currentDs, candidateDs);
 
       if (!violations.isEmpty()) {
-        if (!force) {
-          return PublishResult.error("Validation failed", violations);
-        }
+        return PublishResult.error("Validation failed", violations);
       }
 
       // Store files, but only for protos that changed
@@ -169,15 +168,12 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
         .map(SchemaFile::path)
         .collect(toImmutableSet());
 
-    final ImmutableSet<Path> updatedAndDependencies = resolveDependencies(tx, updatedPaths);
-
     try (final DescriptorBuilder descriptorBuilder =
              descriptorBuilderFactory.newDescriptorBuilder()) {
       // Seed descriptor builder with previous versions of all files and their dependencies
 
       final ImmutableMap<Path, SchemaFile> currentSchemata =
-          updatedAndDependencies.stream()
-              .map(path -> tx.schemaFile(path))
+              tx.fetchAllFiles()
               .collect(toImmutableMap(SchemaFile::path, Function.identity()));
 
       for (SchemaFile file : currentSchemata.values()) {
@@ -186,8 +182,6 @@ public class SchemaRegistry implements SchemaPublisher, SchemaGetter {
 
       // NOTE(staffan): As it is right now, we need compile ALL descriptors to catch breaking
       // changes.
-      // NOTE(fredrikd): Not compiling all any more, but keeping this message until
-      // tests are added
       //
       // Consider the case where the following files exists in the repository:
       //
